@@ -39,6 +39,7 @@ func main() {
 	apiRoot := app.Group("/api")
 	v1 := apiRoot.Group("v1")
 	v1.Get("/conversation/:uuid?", conversationHandler.HandleGetConversation)
+	v1.Post("/conversation/:uuid", conversationHandler.HandlePostConversation)
 
 	log.Fatal(app.Listen(listernAddr))
 }

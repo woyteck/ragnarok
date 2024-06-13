@@ -67,7 +67,7 @@ type CompletionRequestBase struct {
 type CompletionRequest struct {
 	CompletionRequestBase
 	// Model    string    `json:"model"`
-	Messages []Message `json:"messages"`
+	Messages []*Message `json:"messages"`
 	// N        int       `json:"n,omitempty"`
 	// Stream   bool      `json:"stream,omitempty"`
 	// User     string    `json:"user,omitempty"`
@@ -163,8 +163,4 @@ type TranscriptionResponse struct {
 type Config struct {
 	ApiKey string
 	Cache  CacheInterface
-}
-
-type OpenAI struct {
-	Config Config
 }

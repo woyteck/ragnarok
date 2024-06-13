@@ -15,13 +15,17 @@ import (
 
 const baseUrl = "https://api.openai.com/v1"
 
-func New(config Config) OpenAI {
-	return OpenAI{
+type Client struct {
+	Config Config
+}
+
+func NewClient(config Config) Client {
+	return Client{
 		Config: config,
 	}
 }
 
-func (o *OpenAI) GetCompletion(request CompletionRequest) (*CompletionResponse, error) {
+func (o *Client) GetCompletion(request CompletionRequest) (*CompletionResponse, error) {
 	text := fmt.Sprintf("%v", request)
 	cacheKey := createHash("openai.GetCompletion" + text)
 	if o.Config.Cache != nil {
@@ -74,7 +78,7 @@ func (o *OpenAI) GetCompletion(request CompletionRequest) (*CompletionResponse, 
 	return &result, nil
 }
 
-func (o *OpenAI) GetImageCompletion(request ImageCompletionRequest) (*CompletionResponse, error) {
+func (o *Client) GetImageCompletion(request ImageCompletionRequest) (*CompletionResponse, error) {
 	url := fmt.Sprintf("%s/chat/completions", baseUrl)
 
 	postBody, _ := json.Marshal(request)
@@ -102,7 +106,7 @@ func (o *OpenAI) GetImageCompletion(request ImageCompletionRequest) (*Completion
 	return &result, nil
 }
 
-func (o *OpenAI) GetImageCompletionShort(messages []ImageMessage, model string) (*CompletionResponse, error) {
+func (o *Client) GetImageCompletionShort(messages []ImageMessage, model string) (*CompletionResponse, error) {
 	request := ImageCompletionRequest{
 		Messages: messages,
 	}
@@ -111,7 +115,7 @@ func (o *OpenAI) GetImageCompletionShort(messages []ImageMessage, model string) 
 	return o.GetImageCompletion(request)
 }
 
-func (o *OpenAI) GetCompletionShort(messages []Message, model string) (*CompletionResponse, error) {
+func (o *Client) GetCompletionShort(messages []*Message, model string) (*CompletionResponse, error) {
 	request := CompletionRequest{
 		Messages: messages,
 	}
@@ -120,7 +124,7 @@ func (o *OpenAI) GetCompletionShort(messages []Message, model string) (*Completi
 	return o.GetCompletion(request)
 }
 
-func (o *OpenAI) GetModeration(input string) (bool, *ModerationResponse, error) {
+func (o *Client) GetModeration(input string) (bool, *ModerationResponse, error) {
 	url := fmt.Sprintf("%s/moderations", baseUrl)
 
 	request := ModerationRequest{
@@ -162,7 +166,7 @@ func (o *OpenAI) GetModeration(input string) (bool, *ModerationResponse, error) 
 	return isFlagged, &result, nil
 }
 
-func (o *OpenAI) GetEmbedding(input string, model string) ([]float64, error) {
+func (o *Client) GetEmbedding(input string, model string) ([]float64, error) {
 	url := fmt.Sprintf("%s/embeddings", baseUrl)
 
 	request := EmbeddingRequest{
@@ -203,7 +207,7 @@ func (o *OpenAI) GetEmbedding(input string, model string) ([]float64, error) {
 	return result.Data[0].Embedding, nil
 }
 
-func (o *OpenAI) GetTranscription(file []byte, model string) (string, error) {
+func (o *Client) GetTranscription(file []byte, model string) (string, error) {
 	url := fmt.Sprintf("%s/audio/transcriptions", baseUrl)
 
 	body := &bytes.Buffer{}
@@ -241,7 +245,7 @@ func (o *OpenAI) GetTranscription(file []byte, model string) (string, error) {
 	return result.Text, nil
 }
 
-func (o *OpenAI) addHeaders(req *http.Request) {
+func (o *Client) addHeaders(req *http.Request) {
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %v", o.Config.ApiKey))
 	req.Header.Add("Content-Type", "application/json")
 }

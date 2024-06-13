@@ -73,12 +73,12 @@ func (s *PostgresConversationStore) InsertConversation(ctx context.Context, c *t
 	cols := []string{"uuid"}
 	values := []any{c.ID}
 
-	if !c.CreatedAt.IsZero() {
+	if c.CreatedAt != nil && !c.CreatedAt.IsZero() {
 		cols = append(cols, "created_at")
 		values = append(values, c.CreatedAt)
 	}
 
-	if !c.UpdatedAt.IsZero() {
+	if c.UpdatedAt != nil && !c.UpdatedAt.IsZero() {
 		cols = append(cols, "updated_at")
 		values = append(values, c.UpdatedAt)
 	}

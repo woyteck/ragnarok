@@ -57,11 +57,11 @@ func ErrResourceNotFound(res string) Error {
 func ErrInternalError(res string) Error {
 	return Error{
 		Code: http.StatusInternalServerError,
-		Err:  fmt.Sprintf(res),
+		Err:  res,
 	}
 }
 
-func BadRequest() Error {
+func ErrBadRequest() Error {
 	return Error{
 		Code: http.StatusBadRequest,
 		Err:  "invalid json request",

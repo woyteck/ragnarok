@@ -115,7 +115,7 @@ func (s *PostgresMessagesStore) InsertMessage(ctx context.Context, m *types.Mess
 	cols := []string{"uuid", "conversation_id", "role", "content"}
 	values := []any{m.ID, m.ConversationId, m.Role, m.Content}
 
-	if !m.CreatedAt.IsZero() {
+	if m.CreatedAt != nil && !m.CreatedAt.IsZero() {
 		cols = append(cols, "created_at")
 		values = append(values, m.CreatedAt)
 	}

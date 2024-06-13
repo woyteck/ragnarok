@@ -20,3 +20,8 @@ type Message struct {
 	Content        string     `json:"content"`
 	CreatedAt      *time.Time `json:"created_at,omitempty"`
 }
+
+type Coords struct {
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+}
