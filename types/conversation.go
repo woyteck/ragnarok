@@ -7,15 +7,16 @@ import (
 )
 
 type Conversation struct {
-	ID        uuid.UUID `json:"id"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID        uuid.UUID  `json:"id" db:"uuid"`
+	CreatedAt *time.Time `json:"created_at,omitempty" db:"created_at"`
+	UpdatedAt *time.Time `json:"updated_at,omitempty" db:"updated_at"`
+	Messages  []*Message `json:"messages,omitempty"`
 }
 
 type Message struct {
-	ID             uuid.UUID `json:"id"`
-	ConversationId uuid.UUID `json:"conversation_id"`
-	Role           string    `json:"role"`
-	Content        string    `json:"content"`
-	CreatedAt      time.Time `json:"created_at"`
+	ID             uuid.UUID  `json:"id"`
+	ConversationId uuid.UUID  `json:"conversation_id"`
+	Role           string     `json:"role"`
+	Content        string     `json:"content"`
+	CreatedAt      *time.Time `json:"created_at,omitempty"`
 }

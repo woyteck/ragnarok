@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/google/uuid"
 	"woyteck.pl/ragnarok/types"
@@ -37,17 +36,27 @@ func (s *PostgresConversationStore) Truncate(ctx context.Context) error {
 }
 
 func (s *PostgresConversationStore) GetConversationByUUID(ctx context.Context, uuid uuid.UUID) (*types.Conversation, error) {
-	var createdAt, updatedAt time.Time
+	var createdAt, updatedAt sql.NullString
+
 	query := fmt.Sprintf("SELECT created_at, updated_at FROM %s WHERE uuid = $1", s.table)
 	row := s.db.QueryRow(query, uuid)
+
 	switch err := row.Scan(&createdAt, &updatedAt); err {
 	case sql.ErrNoRows:
 		return nil, fmt.Errorf("conversation not found")
 	case nil:
 		conv := &types.Conversation{
-			ID:        uuid,
-			CreatedAt: createdAt,
-			UpdatedAt: updatedAt,
+			ID: uuid,
+		}
+
+		createdAtTime, err := parseTimestamp(createdAt)
+		if err == nil {
+			conv.CreatedAt = createdAtTime
+		}
+
+		updatedAtTime, err := parseTimestamp(updatedAt)
+		if err == nil {
+			conv.UpdatedAt = updatedAtTime
 		}
 
 		return conv, nil

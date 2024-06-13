@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/google/uuid"
 	"woyteck.pl/ragnarok/types"
@@ -14,6 +13,7 @@ import (
 type MessagesStore interface {
 	Truncater
 	GetMessageByUUID(context.Context, uuid.UUID) (*types.Message, error)
+	GetMessagesByConversationUUID(context.Context, uuid.UUID) ([]*types.Message, error)
 	InsertMessage(context.Context, *types.Message) (*types.Message, error)
 }
 
@@ -40,25 +40,71 @@ func (s *PostgresMessagesStore) GetMessageByUUID(ctx context.Context, id uuid.UU
 	var conversationId uuid.UUID
 	var role string
 	var content string
-	var createdAt time.Time
+	var createdAt sql.NullString
+
 	query := fmt.Sprintf("SELECT conversation_id, role, content, created_at FROM %s WHERE uuid = $1", s.table)
 	row := s.db.QueryRow(query, id)
+
 	switch err := row.Scan(&conversationId, &role, &content, &createdAt); err {
 	case sql.ErrNoRows:
 		return nil, fmt.Errorf("conversation not found")
 	case nil:
-		conv := &types.Message{
+		message := &types.Message{
 			ID:             id,
 			ConversationId: conversationId,
 			Role:           role,
 			Content:        content,
-			CreatedAt:      createdAt,
 		}
 
-		return conv, nil
+		createdAtTime, err := parseTimestamp(createdAt)
+		if err == nil {
+			message.CreatedAt = createdAtTime
+		}
+
+		return message, nil
 	default:
 		return nil, err
 	}
+}
+
+func (s *PostgresMessagesStore) GetMessagesByConversationUUID(ctx context.Context, id uuid.UUID) ([]*types.Message, error) {
+	query := fmt.Sprintf("SELECT conversation_id, role, content, created_at FROM %s WHERE conversation_id = $1", s.table)
+	rows, err := s.db.Query(query, id)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	messages := []*types.Message{}
+
+	for rows.Next() {
+		var conversationId uuid.UUID
+		var role string
+		var content string
+		var createdAt sql.NullString
+
+		err := rows.Scan(&conversationId, &role, &content, &createdAt)
+		if err != nil {
+			return nil, err
+		}
+
+		message := &types.Message{
+			ID:             id,
+			ConversationId: conversationId,
+			Role:           role,
+			Content:        content,
+		}
+
+		createdAtTime, err := parseTimestamp(createdAt)
+		if err == nil {
+			message.CreatedAt = createdAtTime
+		}
+
+		messages = append(messages, message)
+	}
+
+	return messages, nil
 }
 
 func (s *PostgresMessagesStore) InsertMessage(ctx context.Context, m *types.Message) (*types.Message, error) {

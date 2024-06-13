@@ -1,21 +1,25 @@
 package api
 
 import (
-	"context"
 	"database/sql"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/log"
 	"github.com/google/uuid"
 	"woyteck.pl/ragnarok/db"
 	"woyteck.pl/ragnarok/types"
 )
 
-type ConversationHandler struct {
-	db    *sql.DB
-	store db.ConversationStore
+type ConversationResponse struct {
+	Conversation types.Conversation `json:"conversation"`
 }
 
-func NewConversationHandler(db *sql.DB, store db.ConversationStore) *ConversationHandler {
+type ConversationHandler struct {
+	db    *sql.DB
+	store *db.Store
+}
+
+func NewConversationHandler(db *sql.DB, store *db.Store) *ConversationHandler {
 	return &ConversationHandler{
 		db:    db,
 		store: store,
@@ -33,16 +37,23 @@ func (h *ConversationHandler) HandleGetConversation(c *fiber.Ctx) error {
 		isNew = false
 	}
 
+	var conv *types.Conversation
 	if isNew {
-		conv := types.Conversation{}
-		return c.JSON(conv)
-	}
+		conv = &types.Conversation{}
+	} else {
+		conv, err = h.store.Conversation.GetConversationByUUID(c.Context(), validId)
+		if err != nil {
+			log.Error(err)
+			return ErrResourceNotFound("conversation")
+		}
 
-	conv, err := h.store.GetConversationByUUID(context.Background(), validId)
-	if err != nil {
-		return ErrResourceNotFound("conversation")
+		messages, err := h.store.Message.GetMessagesByConversationUUID(c.Context(), validId)
+		if err != nil {
+			log.Error(err)
+		}
+
+		conv.Messages = messages
 	}
 
 	return c.JSON(conv)
-
 }

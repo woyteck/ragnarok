@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	_ "github.com/lib/pq"
 )
@@ -32,4 +33,15 @@ func makePlaceholders(count int) string {
 	}
 
 	return strings.Join(list, ",")
+}
+
+func parseTimestamp(value sql.NullString) (*time.Time, error) {
+	const timeFormat = "2006-01-02T15:04:05Z"
+	createdAtTime, err := time.Parse(timeFormat, value.String)
+	return &createdAtTime, err
+}
+
+type Store struct {
+	Conversation ConversationStore
+	Message      MessagesStore
 }

@@ -31,9 +31,10 @@ func main() {
 	messageStore.Truncate(ctx)
 	conversationStore.Truncate(ctx)
 
+	now := time.Now()
 	c := types.Conversation{
 		ID:        uuid.New(),
-		CreatedAt: time.Now(),
+		CreatedAt: &now,
 	}
 	conversationStore.InsertConversation(ctx, &c)
 
@@ -42,7 +43,7 @@ func main() {
 		ConversationId: c.ID,
 		Role:           "system",
 		Content:        "Lorem ipsum",
-		CreatedAt:      time.Now(),
+		CreatedAt:      &now,
 	}
 	messageStore.InsertMessage(ctx, &m)
 }
