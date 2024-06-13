@@ -11,16 +11,7 @@ import (
 	"woyteck.pl/ragnarok/types"
 )
 
-// type Dropper interface {
-// 	Drop(context.Context) error
-// }
-
-type Truncater interface {
-	Truncate(context.Context) error
-}
-
 type ConversationStore interface {
-	// Dropper
 	Truncater
 	GetConversationByUUID(context.Context, uuid.UUID) (*types.Conversation, error)
 	InsertConversation(context.Context, *types.Conversation) (*types.Conversation, error)
@@ -39,13 +30,15 @@ func NewPostgresConversationStore(db *sql.DB, table string) *PostgresConversatio
 }
 
 func (s *PostgresConversationStore) Truncate(ctx context.Context) error {
-	s.db.Exec(fmt.Sprintf("TRUNCATE %s", s.table))
+	query := fmt.Sprintf("DELETE FROM %s", s.table)
+	fmt.Println(query)
+	s.db.Exec(query)
 	return nil
 }
 
 func (s *PostgresConversationStore) GetConversationByUUID(ctx context.Context, uuid uuid.UUID) (*types.Conversation, error) {
 	var createdAt, updatedAt time.Time
-	query := fmt.Sprintf("SELECT created_at, updated_at FROM %s WHERE uuid = $1 AND deleted_at IS NULL", s.table)
+	query := fmt.Sprintf("SELECT created_at, updated_at FROM %s WHERE uuid = $1", s.table)
 	row := s.db.QueryRow(query, uuid)
 	switch err := row.Scan(&createdAt, &updatedAt); err {
 	case sql.ErrNoRows:
@@ -64,6 +57,9 @@ func (s *PostgresConversationStore) GetConversationByUUID(ctx context.Context, u
 }
 
 func (s *PostgresConversationStore) InsertConversation(ctx context.Context, c *types.Conversation) (*types.Conversation, error) {
+	if c.ID == uuid.Nil {
+		return nil, fmt.Errorf("can't insert conversation with no ID")
+	}
 
 	cols := []string{"uuid"}
 	values := []any{c.ID}
@@ -87,13 +83,4 @@ func (s *PostgresConversationStore) InsertConversation(ctx context.Context, c *t
 	}
 
 	return c, nil
-}
-
-func makePlaceholders(count int) string {
-	list := []string{}
-	for i := 0; i < count; i++ {
-		list = append(list, fmt.Sprintf("$%d", i+1))
-	}
-
-	return strings.Join(list, ",")
 }

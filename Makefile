@@ -16,4 +16,4 @@ db-down:
 seed:
 	@go run scripts/seed.go
 
-.PHONY: gateway, seed
+.PHONY: gateway

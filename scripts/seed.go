@@ -26,7 +26,9 @@ func main() {
 
 	ctx := context.Background()
 	conversationStore := db.NewPostgresConversationStore(dbConn, "conversations")
+	messageStore := db.NewPostgresMessagesStore(dbConn, "messages")
 
+	messageStore.Truncate(ctx)
 	conversationStore.Truncate(ctx)
 
 	c := types.Conversation{
@@ -34,4 +36,13 @@ func main() {
 		CreatedAt: time.Now(),
 	}
 	conversationStore.InsertConversation(ctx, &c)
+
+	m := types.Message{
+		ID:             uuid.New(),
+		ConversationId: c.ID,
+		Role:           "system",
+		Content:        "Lorem ipsum",
+		CreatedAt:      time.Now(),
+	}
+	messageStore.InsertMessage(ctx, &m)
 }
