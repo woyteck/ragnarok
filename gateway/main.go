@@ -24,11 +24,13 @@ func main() {
 	pass := os.Getenv("DB_PASSWORD")
 	name := os.Getenv("DB_NAME")
 	host := os.Getenv("DB_HOST")
-	db := db.Connect(host, user, pass, name)
+	dbConn := db.Connect(host, user, pass, name)
+
+	conversationStore := db.NewPostgresConversationStore(dbConn, "conversations")
 
 	listernAddr := os.Getenv("API_HTTP_LISTEN_ADDRESS")
 
-	conversationHandler := api.NewConversationHandler(db)
+	conversationHandler := api.NewConversationHandler(dbConn, conversationStore)
 
 	app := fiber.New(config)
 	apiRoot := app.Group("/api")

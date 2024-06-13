@@ -1,29 +1,30 @@
 package api
 
 import (
+	"context"
 	"database/sql"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/log"
 	"github.com/google/uuid"
-	"woyteck.pl/ragnarok/conversation"
+	"woyteck.pl/ragnarok/db"
+	"woyteck.pl/ragnarok/types"
 )
 
 type ConversationHandler struct {
-	db *sql.DB
+	db    *sql.DB
+	store db.ConversationStore
 }
 
-func NewConversationHandler(db *sql.DB) *ConversationHandler {
+func NewConversationHandler(db *sql.DB, store db.ConversationStore) *ConversationHandler {
 	return &ConversationHandler{
-		db: db,
+		db:    db,
+		store: store,
 	}
 }
 
 func (h *ConversationHandler) HandleGetConversation(c *fiber.Ctx) error {
-
 	isNew := true
 	var validId uuid.UUID
-	var conv *conversation.Conversation
 
 	uuidParam := c.Params("uuid")
 	err := uuid.Validate(uuidParam)
@@ -33,19 +34,15 @@ func (h *ConversationHandler) HandleGetConversation(c *fiber.Ctx) error {
 	}
 
 	if isNew {
-		conv = conversation.New(h.db)
-		_, err = conv.Create("test context")
-		if err != nil {
-			log.Error(err)
-			return ErrInternalError("something went wrong")
-		}
-	} else {
-		conv, err = conversation.Get(h.db, validId)
-		if err != nil {
-			log.Error(err)
-			return ErrResourceNotFound("conversation")
-		}
+		conv := types.Conversation{}
+		return c.JSON(conv)
+	}
+
+	conv, err := h.store.GetConversationByUUID(context.Background(), validId)
+	if err != nil {
+		return ErrResourceNotFound("conversation")
 	}
 
 	return c.JSON(conv)
+
 }
