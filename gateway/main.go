@@ -6,7 +6,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
-	"woyteck.pl/ragnarok/db"
+	"woyteck.pl/ragnarok/di"
 	"woyteck.pl/ragnarok/gateway/api"
 )
 
@@ -20,21 +20,9 @@ func main() {
 		log.Fatal("Error loading .env file")
 	}
 
-	user := os.Getenv("DB_USER")
-	pass := os.Getenv("DB_PASSWORD")
-	name := os.Getenv("DB_NAME")
-	host := os.Getenv("DB_HOST")
-	dbConn := db.Connect(host, user, pass, name)
+	container := di.NewContainer(di.Services)
 
-	store := &db.Store{
-		Conversation: db.NewPostgresConversationStore(dbConn, "conversations"),
-		Message:      db.NewPostgresMessagesStore(dbConn, "messages"),
-		Cache:        db.NewPostgresCacheStore(dbConn, "cache"),
-	}
-
-	listernAddr := os.Getenv("API_HTTP_LISTEN_ADDRESS")
-
-	conversationHandler := api.NewConversationHandler(dbConn, store)
+	conversationHandler := api.NewConversationHandler(container)
 
 	app := fiber.New(config)
 	apiRoot := app.Group("/api")
@@ -42,5 +30,6 @@ func main() {
 	v1.Get("/conversation/:uuid?", conversationHandler.HandleGetConversation)
 	v1.Post("/conversation/:uuid", conversationHandler.HandlePostConversation)
 
+	listernAddr := os.Getenv("API_HTTP_LISTEN_ADDRESS")
 	log.Fatal(app.Listen(listernAddr))
 }

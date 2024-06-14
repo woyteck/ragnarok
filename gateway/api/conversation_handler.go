@@ -2,13 +2,13 @@ package api
 
 import (
 	"database/sql"
-	"os"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/log"
 	"github.com/google/uuid"
 	"woyteck.pl/ragnarok/db"
+	"woyteck.pl/ragnarok/di"
 	"woyteck.pl/ragnarok/openai"
 	"woyteck.pl/ragnarok/prompter"
 	"woyteck.pl/ragnarok/rag"
@@ -27,12 +27,26 @@ type TalkRequest struct {
 type ConversationHandler struct {
 	db    *sql.DB
 	store *db.Store
+	llm   *openai.Client
 }
 
-func NewConversationHandler(db *sql.DB, store *db.Store) *ConversationHandler {
+func NewConversationHandler(container *di.Container) *ConversationHandler {
+	dbConn, ok := container.Get("db").(*sql.DB)
+	if !ok {
+		panic("get db failed")
+	}
+	store, ok := container.Get("store").(*db.Store)
+	if !ok {
+		panic("get store failed")
+	}
+	llm, ok := container.Get("openai").(openai.Client)
+	if !ok {
+		panic("get openai failed")
+	}
 	return &ConversationHandler{
-		db:    db,
+		db:    dbConn,
 		store: store,
+		llm:   &llm,
 	}
 }
 
@@ -131,12 +145,7 @@ func (h *ConversationHandler) HandlePostConversation(c *fiber.Ctx) error {
 		return ErrBadRequest()
 	}
 
-	config := openai.Config{ //TODO: dependency injection
-		ApiKey: os.Getenv("OPENAI_API_KEY"),
-	}
-	llm := openai.NewClient(config)
-
-	rag := rag.New(&llm, h.store.Message, prompter.New())
+	rag := rag.New(h.llm, h.store.Message, prompter.New())
 	err = rag.Ask(conv)
 	if err != nil {
 		log.Error(err)
