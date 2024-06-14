@@ -29,6 +29,7 @@ func main() {
 	store := &db.Store{
 		Conversation: db.NewPostgresConversationStore(dbConn, "conversations"),
 		Message:      db.NewPostgresMessagesStore(dbConn, "messages"),
+		Cache:        db.NewPostgresCacheStore(dbConn, "cache"),
 	}
 
 	listernAddr := os.Getenv("API_HTTP_LISTEN_ADDRESS")
