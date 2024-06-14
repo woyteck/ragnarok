@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"woyteck.pl/ragnarok/db"
 	"woyteck.pl/ragnarok/openai"
+	"woyteck.pl/ragnarok/prompter"
 	"woyteck.pl/ragnarok/rag"
 	"woyteck.pl/ragnarok/types"
 )
@@ -92,6 +93,30 @@ func (h *ConversationHandler) HandlePostConversation(c *fiber.Ctx) error {
 	}
 
 	now := time.Now()
+
+	if len(conv.Messages) == 0 {
+		pr := prompter.New()
+		convContext, err := pr.Get("main_context")
+		if err != nil {
+			return err
+		}
+
+		contextMessage := types.Message{
+			ID:             uuid.New(),
+			ConversationId: conv.ID,
+			Role:           "system",
+			Content:        convContext,
+			CreatedAt:      &now,
+		}
+
+		conv.Messages = append(conv.Messages, &contextMessage)
+		_, err = h.store.Message.InsertMessage(c.Context(), &contextMessage)
+		if err != nil {
+			log.Error(err)
+			return ErrBadRequest()
+		}
+	}
+
 	message := &types.Message{
 		ID:             uuid.New(),
 		ConversationId: conv.ID,
@@ -110,7 +135,8 @@ func (h *ConversationHandler) HandlePostConversation(c *fiber.Ctx) error {
 		ApiKey: os.Getenv("OPENAI_API_KEY"),
 	}
 	llm := openai.NewClient(config)
-	rag := rag.New(&llm, h.store.Message)
+
+	rag := rag.New(&llm, h.store.Message, prompter.New())
 	err = rag.Ask(conv)
 	if err != nil {
 		log.Error(err)

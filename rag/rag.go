@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"woyteck.pl/ragnarok/db"
 	"woyteck.pl/ragnarok/openai"
+	"woyteck.pl/ragnarok/prompter"
 	"woyteck.pl/ragnarok/types"
 )
 
@@ -16,7 +17,7 @@ type Rag struct {
 	messagesStore db.MessagesStore
 }
 
-func New(llm *openai.Client, messagesStore db.MessagesStore) *Rag {
+func New(llm *openai.Client, messagesStore db.MessagesStore, pr *prompter.Prompter) *Rag {
 	return &Rag{
 		llm:           llm,
 		messagesStore: messagesStore,
