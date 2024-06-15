@@ -50,6 +50,10 @@ func NewConversationHandler(container *di.Container) *ConversationHandler {
 		panic("get rag failed")
 	}
 	tts, ok := container.Get("tts").(*text_to_speech.ElevenLabsTTS)
+	if !ok {
+		panic("get tts failed")
+	}
+
 	return &ConversationHandler{
 		db:    dbConn,
 		store: store,
