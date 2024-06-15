@@ -13,7 +13,7 @@ import (
 )
 
 var Services = map[string]ServiceFactoryFn{
-	"openai": func(c *Container) any {
+	"llm": func(c *Container) any {
 		config := openai.Config{
 			ApiKey: os.Getenv("OPENAI_API_KEY"),
 		}
@@ -45,7 +45,7 @@ var Services = map[string]ServiceFactoryFn{
 		}
 	},
 	"rag": func(c *Container) any {
-		llm, ok := c.Get("openai").(openai.Client)
+		llm, ok := c.Get("llm").(*openai.Client)
 		if !ok {
 			panic("openai factory failed")
 		}
@@ -53,8 +53,12 @@ var Services = map[string]ServiceFactoryFn{
 		if !ok {
 			panic("store factory failed")
 		}
+		prompter, ok := c.Get("prompter").(*prompter.Prompter)
+		if !ok {
+			panic("store factory failed")
+		}
 
-		return rag.New(&llm, store.Message, prompter.New())
+		return rag.New(llm, store.Message, prompter)
 	},
 	"vectordb": func(c *Container) any {
 		user := os.Getenv("QDRANT_BASEURL")

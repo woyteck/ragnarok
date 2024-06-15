@@ -19,8 +19,8 @@ type Client struct {
 	Config Config
 }
 
-func NewClient(config Config) Client {
-	return Client{
+func NewClient(config Config) *Client {
+	return &Client{
 		Config: config,
 	}
 }

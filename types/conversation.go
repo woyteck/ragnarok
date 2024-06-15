@@ -21,6 +21,14 @@ type Message struct {
 	CreatedAt      *time.Time `json:"created_at,omitempty"`
 }
 
+func NewMessage(conversationTi uuid.UUID, role string, content string) *Message {
+	now := time.Now()
+	return &Message{
+		ID:        uuid.New(),
+		CreatedAt: &now,
+	}
+}
+
 type Coords struct {
 	Latitude  float64 `json:"latitude"`
 	Longitude float64 `json:"longitude"`

@@ -2,7 +2,6 @@ package api
 
 import (
 	"database/sql"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/log"
@@ -28,6 +27,7 @@ type ConversationHandler struct {
 	db    *sql.DB
 	store *db.Store
 	llm   *openai.Client
+	rag   *rag.Rag
 }
 
 func NewConversationHandler(container *di.Container) *ConversationHandler {
@@ -39,14 +39,19 @@ func NewConversationHandler(container *di.Container) *ConversationHandler {
 	if !ok {
 		panic("get store failed")
 	}
-	llm, ok := container.Get("openai").(openai.Client)
+	llm, ok := container.Get("llm").(*openai.Client)
 	if !ok {
-		panic("get openai failed")
+		panic("get llm failed")
+	}
+	rag, ok := container.Get("rag").(*rag.Rag)
+	if !ok {
+		panic("get rag failed")
 	}
 	return &ConversationHandler{
 		db:    dbConn,
 		store: store,
-		llm:   &llm,
+		llm:   llm,
+		rag:   rag,
 	}
 }
 
@@ -106,8 +111,6 @@ func (h *ConversationHandler) HandlePostConversation(c *fiber.Ctx) error {
 		return ErrBadRequest()
 	}
 
-	now := time.Now()
-
 	if len(conv.Messages) == 0 {
 		pr := prompter.New()
 		convContext, err := pr.Get("main_context")
@@ -115,29 +118,16 @@ func (h *ConversationHandler) HandlePostConversation(c *fiber.Ctx) error {
 			return err
 		}
 
-		contextMessage := types.Message{
-			ID:             uuid.New(),
-			ConversationId: conv.ID,
-			Role:           "system",
-			Content:        convContext,
-			CreatedAt:      &now,
-		}
-
-		conv.Messages = append(conv.Messages, &contextMessage)
-		_, err = h.store.Message.InsertMessage(c.Context(), &contextMessage)
+		contextMessage := types.NewMessage(conv.ID, "system", convContext)
+		conv.Messages = append(conv.Messages, contextMessage)
+		_, err = h.store.Message.InsertMessage(c.Context(), contextMessage)
 		if err != nil {
 			log.Error(err)
 			return ErrBadRequest()
 		}
 	}
 
-	message := &types.Message{
-		ID:             uuid.New(),
-		ConversationId: conv.ID,
-		Role:           "user",
-		Content:        request.Text,
-		CreatedAt:      &now,
-	}
+	message := types.NewMessage(conv.ID, "user", request.Text)
 	conv.Messages = append(conv.Messages, message)
 	_, err = h.store.Message.InsertMessage(c.Context(), message)
 	if err != nil {
@@ -145,8 +135,7 @@ func (h *ConversationHandler) HandlePostConversation(c *fiber.Ctx) error {
 		return ErrBadRequest()
 	}
 
-	rag := rag.New(h.llm, h.store.Message, prompter.New())
-	err = rag.Ask(conv)
+	err = h.rag.Ask(conv)
 	if err != nil {
 		log.Error(err)
 		return ErrInternalError("something went wrong")
