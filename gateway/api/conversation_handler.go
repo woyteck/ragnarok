@@ -11,6 +11,7 @@ import (
 	"woyteck.pl/ragnarok/openai"
 	"woyteck.pl/ragnarok/prompter"
 	"woyteck.pl/ragnarok/rag"
+	"woyteck.pl/ragnarok/text_to_speech"
 	"woyteck.pl/ragnarok/types"
 )
 
@@ -28,6 +29,7 @@ type ConversationHandler struct {
 	store *db.Store
 	llm   *openai.Client
 	rag   *rag.Rag
+	tts   *text_to_speech.ElevenLabsTTS
 }
 
 func NewConversationHandler(container *di.Container) *ConversationHandler {
@@ -47,11 +49,13 @@ func NewConversationHandler(container *di.Container) *ConversationHandler {
 	if !ok {
 		panic("get rag failed")
 	}
+	tts, ok := container.Get("tts").(*text_to_speech.ElevenLabsTTS)
 	return &ConversationHandler{
 		db:    dbConn,
 		store: store,
 		llm:   llm,
 		rag:   rag,
+		tts:   tts,
 	}
 }
 
@@ -68,7 +72,14 @@ func (h *ConversationHandler) HandleGetConversation(c *fiber.Ctx) error {
 
 	var conv *types.Conversation
 	if isNew {
-		conv = &types.Conversation{}
+		conv = &types.Conversation{
+			ID: uuid.New(),
+		}
+		_, err := h.store.Conversation.InsertConversation(c.Context(), conv)
+		if err != nil {
+			log.Error(err)
+			return ErrInternalError("something went wrong")
+		}
 	} else {
 		conv, err = h.store.Conversation.GetConversationByUUID(c.Context(), validId)
 		if err != nil {
@@ -141,5 +152,13 @@ func (h *ConversationHandler) HandlePostConversation(c *fiber.Ctx) error {
 		return ErrInternalError("something went wrong")
 	}
 
-	return c.JSON(conv)
+	lastMessage := conv.Messages[len(conv.Messages)-1]
+	b, err := h.tts.TextToSpeech(lastMessage.Content)
+	if err != nil {
+		log.Error(err)
+		return ErrInternalError("something went wrong")
+	}
+
+	c.Set("Content-Type", "audio/mpeg")
+	return c.Send(b)
 }

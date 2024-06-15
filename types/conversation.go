@@ -21,12 +21,18 @@ type Message struct {
 	CreatedAt      *time.Time `json:"created_at,omitempty"`
 }
 
-func NewMessage(conversationTi uuid.UUID, role string, content string) *Message {
+func NewMessage(conversationID uuid.UUID, role string, content string) *Message {
 	now := time.Now()
-	return &Message{
+	message := &Message{
 		ID:        uuid.New(),
 		CreatedAt: &now,
 	}
+
+	message.ConversationId = conversationID
+	message.Role = role
+	message.Content = content
+
+	return message
 }
 
 type Coords struct {
