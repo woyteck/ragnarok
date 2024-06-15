@@ -4,10 +4,12 @@ import (
 	"database/sql"
 	"os"
 
+	"github.com/gocolly/colly"
 	"woyteck.pl/ragnarok/db"
 	"woyteck.pl/ragnarok/openai"
 	"woyteck.pl/ragnarok/prompter"
 	"woyteck.pl/ragnarok/rag"
+	"woyteck.pl/ragnarok/scraper"
 	"woyteck.pl/ragnarok/text_to_speech"
 	"woyteck.pl/ragnarok/vectordb"
 )
@@ -42,6 +44,7 @@ var Services = map[string]ServiceFactoryFn{
 			Conversation: db.NewPostgresConversationStore(dbConn, "conversations"),
 			Message:      db.NewPostgresMessagesStore(dbConn, "messages"),
 			Cache:        db.NewPostgresCacheStore(dbConn, "cache"),
+			Memory:       db.NewPostgresMemoriesStore(dbConn, "memories"),
 		}
 	},
 	"rag": func(c *Container) any {
@@ -71,5 +74,8 @@ var Services = map[string]ServiceFactoryFn{
 		config := text_to_speech.NewElevenLabsConfig().WithApiKey(apiKey)
 
 		return text_to_speech.NewElevenLabsTTS(config)
+	},
+	"scraper": func(c *Container) any {
+		return scraper.NewCollyScraper(colly.NewCollector())
 	},
 }

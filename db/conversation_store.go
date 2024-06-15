@@ -83,7 +83,7 @@ func (s *PostgresConversationStore) InsertConversation(ctx context.Context, c *t
 		values = append(values, c.UpdatedAt)
 	}
 
-	query := fmt.Sprintf("INSERT INTO conversations (%s) VALUES (%s)", strings.Join(cols, ","), makePlaceholders(len(values)))
+	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", strings.Join(cols, ","), s.table, makePlaceholders(len(values)))
 
 	_, err := s.db.Exec(query, values...)
 	if err != nil {

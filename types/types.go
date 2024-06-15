@@ -39,3 +39,23 @@ type Coords struct {
 	Latitude  float64 `json:"latitude"`
 	Longitude float64 `json:"longitude"`
 }
+
+type Memory struct {
+	ID         uuid.UUID  `json:"id"`
+	CreatedAt  *time.Time `json:"createdAt"`
+	UpdatedAt  *time.Time `json:"updatedAt"`
+	DeletedAt  *time.Time `json:"deletedAt"`
+	MemoryType string     `json:"memoryType"`
+	Source     string     `json:"source"`
+	Content    string     `json:"content"`
+}
+
+type MemoryFragment struct {
+	ID              uuid.UUID  `json:"id"`
+	CreatedAt       *time.Time `json:"createdAt"`
+	ContentOriginal string     `json:"contentOriginal"`
+	ContentRefined  string     `json:"contentRefined"`
+	IsRefined       bool       `json:"isRefined"`
+	IsEmbedded      bool       `json:"isEmbedded"`
+	MemoryId        uuid.UUID  `json:"memoryId"`
+}

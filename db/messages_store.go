@@ -33,6 +33,7 @@ func (s *PostgresMessagesStore) Truncate(ctx context.Context) error {
 	query := fmt.Sprintf("DELETE FROM %s", s.table)
 	fmt.Println(query)
 	s.db.Exec(query)
+
 	return nil
 }
 
@@ -47,7 +48,7 @@ func (s *PostgresMessagesStore) GetMessageByUUID(ctx context.Context, id uuid.UU
 
 	switch err := row.Scan(&conversationId, &role, &content, &createdAt); err {
 	case sql.ErrNoRows:
-		return nil, fmt.Errorf("conversation not found")
+		return nil, fmt.Errorf("message not found")
 	case nil:
 		message := &types.Message{
 			ID:             id,
@@ -120,7 +121,7 @@ func (s *PostgresMessagesStore) InsertMessage(ctx context.Context, m *types.Mess
 		values = append(values, m.CreatedAt)
 	}
 
-	query := fmt.Sprintf("INSERT INTO Messages (%s) VALUES (%s)", strings.Join(cols, ","), makePlaceholders(len(values)))
+	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", strings.Join(cols, ","), s.table, makePlaceholders(len(values)))
 
 	_, err := s.db.Exec(query, values...)
 	if err != nil {

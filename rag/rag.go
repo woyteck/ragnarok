@@ -35,7 +35,7 @@ func (r *Rag) Ask(conversation *types.Conversation) error {
 	req := openai.CompletionRequest{
 		Messages: messages,
 	}
-	req.Model = "gpt-3.5-turbo"
+	req.Model = "gpt-4-turbo"
 
 	resp, err := r.llm.GetCompletion(req)
 	if err != nil {

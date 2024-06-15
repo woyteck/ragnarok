@@ -45,4 +45,5 @@ type Store struct {
 	Conversation ConversationStore
 	Message      MessagesStore
 	Cache        CacheStore
+	Memory       MemoriesStore
 }
