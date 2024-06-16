@@ -115,13 +115,22 @@ func (o *Client) GetImageCompletionShort(messages []ImageMessage, model string) 
 	return o.GetImageCompletion(request)
 }
 
-func (o *Client) GetCompletionShort(messages []*Message, model string) (*CompletionResponse, error) {
+func (o *Client) GetCompletionShort(messages []*Message, model string) (string, error) {
 	request := CompletionRequest{
 		Messages: messages,
 	}
 	request.Model = model
 
-	return o.GetCompletion(request)
+	response, err := o.GetCompletion(request)
+	if err != nil {
+		return "", err
+	}
+
+	if len(response.Choices) == 0 {
+		return "", fmt.Errorf("llm returned no choices")
+	}
+
+	return response.Choices[0].Message.Content, nil
 }
 
 func (o *Client) GetModeration(input string) (bool, *ModerationResponse, error) {

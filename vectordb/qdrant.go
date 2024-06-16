@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -87,11 +88,50 @@ type QdrantCreateCollectionResponse struct {
 	Result bool    `json:"result"`
 }
 
+type CollectionExistsResult struct {
+	Exists bool `json:"exists"`
+}
+
+type CollectionExistsResponse struct {
+	Time   float64                `json:"time"`
+	Status string                 `json:"status"`
+	Result CollectionExistsResult `json:"result"`
+}
+
 func NewQdrantClient(baseUrl string, apiKey string) *QdrantClient {
 	return &QdrantClient{
 		baseUrl: baseUrl,
 		apiKey:  apiKey,
 	}
+}
+
+func (c *QdrantClient) CollectionExists(collectionName string) (bool, error) {
+	url := fmt.Sprintf("%s/collections/%s/exists", c.baseUrl, collectionName)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return false, err
+	}
+
+	c.addHeaders(req)
+	response, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return false, err
+	}
+
+	defer response.Body.Close()
+
+	if response.StatusCode >= 400 {
+		return false, fmt.Errorf("qdrant db: GetCollection responded with %d code", response.StatusCode)
+	}
+
+	var result CollectionExistsResponse
+	err = json.NewDecoder(response.Body).Decode(&result)
+	if err != nil {
+		return false, err
+	}
+
+	return result.Result.Exists, nil
 }
 
 func (c *QdrantClient) GetCollection(collectionName string) (*Collection, error) {
@@ -161,13 +201,13 @@ func (c *QdrantClient) GetCollections() ([]*Collection, error) {
 	return collections, nil
 }
 
-func (c *QdrantClient) CreateCollection(collectionName string) error {
+func (c *QdrantClient) CreateCollection(collectionName string, size int, distance string) error {
 	url := fmt.Sprintf("%s/collections/%s", c.baseUrl, collectionName)
 
 	request := QdrantCreateCollectionRequest{
 		Vectors: QdrantVectors{
-			Size:     300,
-			Distance: "Cosine",
+			Size:     size,
+			Distance: distance,
 		},
 	}
 
@@ -249,7 +289,8 @@ func (c *QdrantClient) UpsertPoints(collectionName string, vector []float64, id 
 	defer response.Body.Close()
 
 	if response.StatusCode >= 400 {
-		return fmt.Errorf("qdrant db: UpsertPoints responded with %d code", response.StatusCode)
+		b, _ := io.ReadAll(response.Body)
+		return fmt.Errorf("qdrant db: UpsertPoints responded with %d code, body: %+v", response.StatusCode, string(b))
 	}
 
 	var result QdrantUpsertPointsResponse
@@ -308,6 +349,6 @@ func (c *QdrantClient) Search(collectionName string, vector []float64, resultsCo
 }
 
 func (c *QdrantClient) addHeaders(req *http.Request) {
-	req.Header.Add("api-key", c.apiKey)
+	// req.Header.Add("api-key", c.apiKey)
 	req.Header.Add("Content-Type", "application/json")
 }

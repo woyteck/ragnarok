@@ -7,6 +7,10 @@ scraper_service:
 	@go build -C scraper_service -o ../bin/scraper_service .
 	@./bin/scraper_service
 
+indexer_service:
+	@go build -C indexer_service -o ../bin/indexer_service .
+	@./bin/indexer_service
+
 gateway:
 	@go build -C gateway -o ../bin/gateway .
 	@./bin/gateway
@@ -23,4 +27,4 @@ db-down:
 seed:
 	@go run scripts/seed.go
 
-.PHONY: gateway, scraper_service, cli
+.PHONY: cli scraper_service indexer_service gateway

@@ -42,8 +42,9 @@ func parseTimestamp(value sql.NullString) (*time.Time, error) {
 }
 
 type Store struct {
-	Conversation ConversationStore
-	Message      MessagesStore
-	Cache        CacheStore
-	Memory       MemoriesStore
+	Conversation   ConversationStore
+	Message        MessagesStore
+	Cache          CacheStore
+	Memory         MemoriesStore
+	MemoryFragment MemoriesFragmentsStore
 }

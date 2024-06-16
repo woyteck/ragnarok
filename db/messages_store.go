@@ -31,7 +31,6 @@ func NewPostgresMessagesStore(db *sql.DB, table string) *PostgresMessagesStore {
 
 func (s *PostgresMessagesStore) Truncate(ctx context.Context) error {
 	query := fmt.Sprintf("DELETE FROM %s", s.table)
-	fmt.Println(query)
 	s.db.Exec(query)
 
 	return nil

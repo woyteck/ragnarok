@@ -28,8 +28,8 @@ func NewPostgresCacheStore(db *sql.DB, table string) *PostgresCacheStore {
 
 func (s *PostgresCacheStore) Truncate(ctx context.Context) error {
 	query := fmt.Sprintf("DELETE FROM %s", s.table)
-	fmt.Println(query)
 	s.db.Exec(query)
+
 	return nil
 }
 

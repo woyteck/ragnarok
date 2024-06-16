@@ -30,8 +30,8 @@ func NewPostgresConversationStore(db *sql.DB, table string) *PostgresConversatio
 
 func (s *PostgresConversationStore) Truncate(ctx context.Context) error {
 	query := fmt.Sprintf("DELETE FROM %s", s.table)
-	fmt.Println(query)
 	s.db.Exec(query)
+
 	return nil
 }
 
@@ -84,11 +84,9 @@ func (s *PostgresConversationStore) InsertConversation(ctx context.Context, c *t
 	}
 
 	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", s.table, strings.Join(cols, ","), makePlaceholders(len(values)))
-	fmt.Println(query)
 
 	_, err := s.db.Exec(query, values...)
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 

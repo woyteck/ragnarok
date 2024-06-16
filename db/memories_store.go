@@ -13,6 +13,7 @@ import (
 type MemoriesStore interface {
 	Truncater
 	GetMemoryByUUID(context.Context, uuid.UUID) (*types.Memory, error)
+	GetMemoryBySource(context.Context, string) (bool, *types.Memory, error)
 	InsertMemory(context.Context, *types.Memory) error
 }
 
@@ -30,7 +31,6 @@ func NewPostgresMemoriesStore(db *sql.DB, table string) *PostgresMemoriesStore {
 
 func (s *PostgresMemoriesStore) Truncate(ctx context.Context) error {
 	query := fmt.Sprintf("DELETE FROM %s", s.table)
-	fmt.Println(query)
 	s.db.Exec(query)
 
 	return nil
@@ -76,6 +76,49 @@ func (s *PostgresMemoriesStore) GetMemoryByUUID(ctx context.Context, id uuid.UUI
 		return memory, nil
 	default:
 		return nil, err
+	}
+}
+
+func (s *PostgresMemoriesStore) GetMemoryBySource(ctx context.Context, source string) (bool, *types.Memory, error) {
+	var id uuid.UUID
+	var createdAt sql.NullString
+	var updatedAt sql.NullString
+	var deletedAt sql.NullString
+	var memoryType string
+	var content string
+
+	query := fmt.Sprintf("SELECT uuid, created_at, updated_at, deleted_at, memory_type, source, content FROM %s WHERE source = $1", s.table)
+	row := s.db.QueryRow(query, source)
+
+	switch err := row.Scan(&id, &createdAt, &updatedAt, &deletedAt, &memoryType, &source, &content); err {
+	case sql.ErrNoRows:
+		return false, nil, nil
+	case nil:
+		memory := &types.Memory{
+			ID:         id,
+			MemoryType: memoryType,
+			Source:     source,
+			Content:    content,
+		}
+
+		createdAtTime, err := parseTimestamp(createdAt)
+		if err == nil {
+			memory.CreatedAt = createdAtTime
+		}
+
+		updatedAtTime, err := parseTimestamp(updatedAt)
+		if err == nil {
+			memory.UpdatedAt = updatedAtTime
+		}
+
+		deletedAtTime, err := parseTimestamp(deletedAt)
+		if err == nil {
+			memory.DeletedAt = deletedAtTime
+		}
+
+		return true, memory, nil
+	default:
+		return false, nil, err
 	}
 }
 

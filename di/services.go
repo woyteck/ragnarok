@@ -41,10 +41,11 @@ var Services = map[string]ServiceFactoryFn{
 		}
 
 		return &db.Store{
-			Conversation: db.NewPostgresConversationStore(dbConn, "conversations"),
-			Message:      db.NewPostgresMessagesStore(dbConn, "messages"),
-			Cache:        db.NewPostgresCacheStore(dbConn, "cache"),
-			Memory:       db.NewPostgresMemoriesStore(dbConn, "memories"),
+			Conversation:   db.NewPostgresConversationStore(dbConn, "conversations"),
+			Message:        db.NewPostgresMessagesStore(dbConn, "messages"),
+			Cache:          db.NewPostgresCacheStore(dbConn, "cache"),
+			Memory:         db.NewPostgresMemoriesStore(dbConn, "memories"),
+			MemoryFragment: db.NewPostgresMemoriesFragmentsStore(dbConn, "memory_fragments"),
 		}
 	},
 	"rag": func(c *Container) any {

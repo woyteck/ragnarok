@@ -73,3 +73,16 @@ type MemoryFragment struct {
 	IsEmbedded      bool       `json:"isEmbedded"`
 	MemoryID        uuid.UUID  `json:"memoryId"`
 }
+
+func NewMemoryFragment(contentOriginal string, contentRefined string, isRefined bool, isEmbedded bool, memoryID uuid.UUID) *MemoryFragment {
+	now := time.Now()
+	return &MemoryFragment{
+		ID:              uuid.New(),
+		CreatedAt:       &now,
+		ContentOriginal: contentOriginal,
+		ContentRefined:  contentRefined,
+		IsRefined:       isRefined,
+		IsEmbedded:      isEmbedded,
+		MemoryID:        memoryID,
+	}
+}

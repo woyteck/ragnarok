@@ -3,40 +3,44 @@ package main
 import (
 	"context"
 	"log"
-	"os"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	"woyteck.pl/ragnarok/db"
+	"woyteck.pl/ragnarok/di"
 	"woyteck.pl/ragnarok/types"
+	"woyteck.pl/ragnarok/vectordb"
 )
 
 func main() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Error loading .env file")
 	}
 
-	user := os.Getenv("DB_USER")
-	pass := os.Getenv("DB_PASSWORD")
-	name := os.Getenv("DB_NAME")
-	host := os.Getenv("DB_HOST")
-	dbConn := db.Connect(host, user, pass, name)
+	container := di.NewContainer(di.Services)
+
+	store, ok := container.Get("store").(*db.Store)
+	if !ok {
+		panic("get store failed")
+	}
+	qdrant, ok := container.Get("vectordb").(*vectordb.QdrantClient)
+	if !ok {
+		panic("get qdrant failed")
+	}
 
 	ctx := context.Background()
-	conversationStore := db.NewPostgresConversationStore(dbConn, "conversations")
-	messageStore := db.NewPostgresMessagesStore(dbConn, "messages")
 
-	messageStore.Truncate(ctx)
-	conversationStore.Truncate(ctx)
+	store.Conversation.Truncate(ctx)
+	store.Message.Truncate(ctx)
 
 	now := time.Now()
 	c := types.Conversation{
 		ID:        uuid.New(),
 		CreatedAt: &now,
 	}
-	conversationStore.InsertConversation(ctx, &c)
+	store.Conversation.InsertConversation(ctx, &c)
 
 	m := types.Message{
 		ID:             uuid.New(),
@@ -45,5 +49,10 @@ func main() {
 		Content:        "Lorem ipsum",
 		CreatedAt:      &now,
 	}
-	messageStore.InsertMessage(ctx, &m)
+	store.Message.InsertMessage(ctx, &m)
+
+	store.MemoryFragment.Truncate(ctx)
+	store.Memory.Truncate(ctx)
+
+	qdrant.DeleteCollection("memory")
 }

@@ -30,6 +30,13 @@ func NewPostgresMemoriesFragmentsStore(db *sql.DB, table string) *PostgresMemori
 	}
 }
 
+func (s *PostgresMemoriesFragmentsStore) Truncate(ctx context.Context) error {
+	query := fmt.Sprintf("DELETE FROM %s", s.table)
+	s.db.Exec(query)
+
+	return nil
+}
+
 func (s *PostgresMemoriesFragmentsStore) GetMemoryFragmentByUUID(ctx context.Context, id uuid.UUID) (*types.MemoryFragment, error) {
 	var createdAt sql.NullString
 	var contentOriginal string
@@ -146,7 +153,7 @@ func (s *PostgresMemoriesFragmentsStore) UpdateMemoryFragment(ctx context.Contex
 		return fmt.Errorf("can't update memory fragment with no MemoryId")
 	}
 
-	query := fmt.Sprintf("UPDATE %s SET content_original=$1, content_refined=$2, is_refined=$3, is_embedded=$4, memory_id=$5 WHERE id=$6", s.table)
+	query := fmt.Sprintf("UPDATE %s SET content_original=$1, content_refined=$2, is_refined=$3, is_embedded=$4, memory_id=$5 WHERE uuid=$6", s.table)
 	_, err := s.db.Exec(query, f.ContentOriginal, f.ContentRefined, f.IsRefined, f.IsEmbedded, f.MemoryID, f.ID)
 
 	return err

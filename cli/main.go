@@ -7,14 +7,10 @@ import (
 	"os"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"woyteck.pl/ragnarok/types"
 )
 
-var kafkaTopic = "scrap_jobs"
-
-type ScrapTask struct {
-	Url         string `json:"url"`
-	CssSelector string `json:"cssSelector"`
-}
+const kafkaTopicScrap = "scrap_jobs"
 
 func main() {
 	url := flag.String("url", "", "url to scrap")
@@ -55,7 +51,7 @@ func emitScrapTask(url string, cssSelector string) {
 		}
 	}()
 
-	task := ScrapTask{
+	task := types.ScrapTaskEvent{
 		Url:         url,
 		CssSelector: cssSelector,
 	}
@@ -65,9 +61,10 @@ func emitScrapTask(url string, cssSelector string) {
 		panic(err)
 	}
 
+	topic := kafkaTopicScrap
 	err = p.Produce(&kafka.Message{
 		TopicPartition: kafka.TopicPartition{
-			Topic:     &kafkaTopic,
+			Topic:     &topic,
 			Partition: kafka.PartitionAny,
 		},
 		Value: b,
