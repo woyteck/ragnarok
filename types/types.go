@@ -57,5 +57,5 @@ type MemoryFragment struct {
 	ContentRefined  string     `json:"contentRefined"`
 	IsRefined       bool       `json:"isRefined"`
 	IsEmbedded      bool       `json:"isEmbedded"`
-	MemoryId        uuid.UUID  `json:"memoryId"`
+	MemoryID        uuid.UUID  `json:"memoryId"`
 }

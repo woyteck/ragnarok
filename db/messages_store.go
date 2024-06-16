@@ -14,7 +14,7 @@ type MessagesStore interface {
 	Truncater
 	GetMessageByUUID(context.Context, uuid.UUID) (*types.Message, error)
 	GetMessagesByConversationUUID(context.Context, uuid.UUID) ([]*types.Message, error)
-	InsertMessage(context.Context, *types.Message) (*types.Message, error)
+	InsertMessage(context.Context, *types.Message) error
 }
 
 type PostgresMessagesStore struct {
@@ -108,9 +108,9 @@ func (s *PostgresMessagesStore) GetMessagesByConversationUUID(ctx context.Contex
 	return messages, nil
 }
 
-func (s *PostgresMessagesStore) InsertMessage(ctx context.Context, m *types.Message) (*types.Message, error) {
+func (s *PostgresMessagesStore) InsertMessage(ctx context.Context, m *types.Message) error {
 	if m.ID == uuid.Nil {
-		return nil, fmt.Errorf("can't insert message with no ID")
+		return fmt.Errorf("can't insert message with no ID")
 	}
 
 	cols := []string{"uuid", "conversation_id", "role", "content"}
@@ -121,13 +121,13 @@ func (s *PostgresMessagesStore) InsertMessage(ctx context.Context, m *types.Mess
 		values = append(values, m.CreatedAt)
 	}
 
-	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", strings.Join(cols, ","), s.table, makePlaceholders(len(values)))
+	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", s.table, strings.Join(cols, ","), makePlaceholders(len(values)))
 
 	_, err := s.db.Exec(query, values...)
 	if err != nil {
 		fmt.Println(err)
-		return nil, err
+		return err
 	}
 
-	return m, nil
+	return nil
 }

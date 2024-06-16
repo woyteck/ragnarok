@@ -79,7 +79,7 @@ func (h *ConversationHandler) HandleGetConversation(c *fiber.Ctx) error {
 		conv = &types.Conversation{
 			ID: uuid.New(),
 		}
-		_, err := h.store.Conversation.InsertConversation(c.Context(), conv)
+		err := h.store.Conversation.InsertConversation(c.Context(), conv)
 		if err != nil {
 			log.Error(err)
 			return ErrInternalError("something went wrong")
@@ -135,7 +135,7 @@ func (h *ConversationHandler) HandlePostConversation(c *fiber.Ctx) error {
 
 		contextMessage := types.NewMessage(conv.ID, "system", convContext)
 		conv.Messages = append(conv.Messages, contextMessage)
-		_, err = h.store.Message.InsertMessage(c.Context(), contextMessage)
+		err = h.store.Message.InsertMessage(c.Context(), contextMessage)
 		if err != nil {
 			log.Error(err)
 			return ErrBadRequest()
@@ -144,7 +144,7 @@ func (h *ConversationHandler) HandlePostConversation(c *fiber.Ctx) error {
 
 	message := types.NewMessage(conv.ID, "user", request.Text)
 	conv.Messages = append(conv.Messages, message)
-	_, err = h.store.Message.InsertMessage(c.Context(), message)
+	err = h.store.Message.InsertMessage(c.Context(), message)
 	if err != nil {
 		log.Error(err)
 		return ErrBadRequest()

@@ -3,6 +3,8 @@ module woyteck.pl/ragnarok
 go 1.22.4
 
 require (
+	github.com/confluentinc/confluent-kafka-go/v2 v2.4.0
+	github.com/gocolly/colly v1.2.0
 	github.com/gofiber/fiber/v2 v2.52.4
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
@@ -16,9 +18,7 @@ require (
 	github.com/antchfx/htmlquery v1.3.1 // indirect
 	github.com/antchfx/xmlquery v1.4.0 // indirect
 	github.com/antchfx/xpath v1.3.0 // indirect
-	github.com/confluentinc/confluent-kafka-go/v2 v2.4.0 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
-	github.com/gocolly/colly v1.2.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/kennygrant/sanitize v1.2.4 // indirect

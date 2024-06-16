@@ -19,4 +19,4 @@ db-down:
 seed:
 	@go run scripts/seed.go
 
-.PHONY: gateway, scraper_service
+.PHONY: gateway

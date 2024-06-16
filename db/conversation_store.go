@@ -13,7 +13,7 @@ import (
 type ConversationStore interface {
 	Truncater
 	GetConversationByUUID(context.Context, uuid.UUID) (*types.Conversation, error)
-	InsertConversation(context.Context, *types.Conversation) (*types.Conversation, error)
+	InsertConversation(context.Context, *types.Conversation) error
 }
 
 type PostgresConversationStore struct {
@@ -65,9 +65,9 @@ func (s *PostgresConversationStore) GetConversationByUUID(ctx context.Context, u
 	}
 }
 
-func (s *PostgresConversationStore) InsertConversation(ctx context.Context, c *types.Conversation) (*types.Conversation, error) {
+func (s *PostgresConversationStore) InsertConversation(ctx context.Context, c *types.Conversation) error {
 	if c.ID == uuid.Nil {
-		return nil, fmt.Errorf("can't insert conversation with no ID")
+		return fmt.Errorf("can't insert conversation with no ID")
 	}
 
 	cols := []string{"uuid"}
@@ -83,13 +83,14 @@ func (s *PostgresConversationStore) InsertConversation(ctx context.Context, c *t
 		values = append(values, c.UpdatedAt)
 	}
 
-	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", strings.Join(cols, ","), s.table, makePlaceholders(len(values)))
+	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", s.table, strings.Join(cols, ","), makePlaceholders(len(values)))
+	fmt.Println(query)
 
 	_, err := s.db.Exec(query, values...)
 	if err != nil {
 		fmt.Println(err)
-		return nil, err
+		return err
 	}
 
-	return c, nil
+	return nil
 }

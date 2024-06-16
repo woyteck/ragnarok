@@ -13,7 +13,7 @@ import (
 type MemoriesStore interface {
 	Truncater
 	GetMemoryByUUID(context.Context, uuid.UUID) (*types.Memory, error)
-	InsertMemory(context.Context, *types.Memory) (*types.Memory, error)
+	InsertMemory(context.Context, *types.Memory) error
 }
 
 type PostgresMemoriesStore struct {
@@ -79,9 +79,9 @@ func (s *PostgresMemoriesStore) GetMemoryByUUID(ctx context.Context, id uuid.UUI
 	}
 }
 
-func (s *PostgresMemoriesStore) InsertMemory(ctx context.Context, m *types.Memory) (*types.Memory, error) {
+func (s *PostgresMemoriesStore) InsertMemory(ctx context.Context, m *types.Memory) error {
 	if m.ID == uuid.Nil {
-		return nil, fmt.Errorf("can't insert memory with no ID")
+		return fmt.Errorf("can't insert memory with no ID")
 	}
 
 	cols := []string{"uuid", "memory_type", "source", "content"}
@@ -102,13 +102,13 @@ func (s *PostgresMemoriesStore) InsertMemory(ctx context.Context, m *types.Memor
 		values = append(values, m.DeletedAt)
 	}
 
-	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", strings.Join(cols, ","), s.table, makePlaceholders(len(values)))
+	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", s.table, strings.Join(cols, ","), makePlaceholders(len(values)))
 
 	_, err := s.db.Exec(query, values...)
 	if err != nil {
 		fmt.Println(err)
-		return nil, err
+		return err
 	}
 
-	return m, nil
+	return nil
 }

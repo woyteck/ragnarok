@@ -56,7 +56,7 @@ func (r *Rag) Ask(conversation *types.Conversation) error {
 		CreatedAt:      &now,
 	}
 	conversation.Messages = append(conversation.Messages, newMessage)
-	_, err = r.messagesStore.InsertMessage(context.Background(), newMessage)
+	err = r.messagesStore.InsertMessage(context.Background(), newMessage)
 	if err != nil {
 		return err
 	}
