@@ -6,6 +6,9 @@ import (
 	"github.com/google/uuid"
 )
 
+const MemoryTypeWebArticle = "web_article"
+const MemoryTypeTextFile = "text_file"
+
 type Conversation struct {
 	ID        uuid.UUID  `json:"id" db:"uuid"`
 	CreatedAt *time.Time `json:"created_at,omitempty" db:"created_at"`
@@ -48,6 +51,17 @@ type Memory struct {
 	MemoryType string     `json:"memoryType"`
 	Source     string     `json:"source"`
 	Content    string     `json:"content"`
+}
+
+func NewMemory(memoryType string, source string, content string) *Memory {
+	now := time.Now()
+	return &Memory{
+		ID:         uuid.New(),
+		CreatedAt:  &now,
+		MemoryType: memoryType,
+		Source:     source,
+		Content:    content,
+	}
 }
 
 type MemoryFragment struct {

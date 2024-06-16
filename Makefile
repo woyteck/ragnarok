@@ -1,8 +1,12 @@
 include .env
 
+cli:
+	@go build -C cli -o ../bin/cli .
+
 scraper_service:
 	@go build -C scraper_service -o ../bin/scraper_service .
 	@./bin/scraper_service
+
 gateway:
 	@go build -C gateway -o ../bin/gateway .
 	@./bin/gateway
@@ -19,4 +23,4 @@ db-down:
 seed:
 	@go run scripts/seed.go
 
-.PHONY: gateway
+.PHONY: gateway, scraper_service, cli

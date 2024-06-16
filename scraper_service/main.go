@@ -1,14 +1,19 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"os"
+	"log"
+	"strings"
+	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
-	"github.com/gofiber/fiber/v2/log"
+	"github.com/joho/godotenv"
+	"woyteck.pl/ragnarok/db"
 	"woyteck.pl/ragnarok/di"
 	"woyteck.pl/ragnarok/scraper"
+	"woyteck.pl/ragnarok/types"
 )
 
 const kafkaTopic = "scrap_jobs"
@@ -19,12 +24,10 @@ type ScrapTask struct {
 }
 
 func main() {
-	// err := godotenv.Load()
-	// if err != nil {
-	// 	log.Fatal("Error loading .env file")
-	// }
-
-	fmt.Println(os.Args[1])
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
 
 	container := di.NewContainer(di.Services)
 
@@ -33,7 +36,10 @@ func main() {
 		panic("get scraper failed")
 	}
 
-	_ = scraper
+	store, ok := container.Get("store").(*db.Store)
+	if !ok {
+		panic("get store failed")
+	}
 
 	c, err := kafka.NewConsumer(&kafka.ConfigMap{
 		"bootstrap.servers": "localhost",
@@ -46,25 +52,39 @@ func main() {
 
 	c.SubscribeTopics([]string{kafkaTopic}, nil)
 
-	for {
-		msg, err := c.ReadMessage(-1)
-		if err != nil {
-			log.Errorf("kafka consume error: %s", err)
+	run := true
+
+	for run {
+		msg, err := c.ReadMessage(time.Second)
+		if err == nil {
+			fmt.Printf("Message on %s: %s\n", msg.TopicPartition, string(msg.Value))
+			saveMemory(msg, scraper, store)
+		} else if !err.(kafka.Error).IsTimeout() {
+			// The client will automatically try to recover from all errors.
+			// Timeout is not considered an error because it is raised by
+			// ReadMessage in absence of messages.
+			fmt.Printf("Consumer error: %v (%v)\n", err, msg)
 			continue
 		}
-
-		var data ScrapTask
-		if err := json.Unmarshal(msg.Value, &data); err != nil {
-			log.Errorf("json unserialization error: %s", err)
-			continue
-		}
-
-		text, err := scraper.ScrapPage(data.Url, data.CssSelector)
-		if err != nil {
-			log.Errorf("failed to scrap url: %s, css selector: %s, error: %s", data.Url, data.CssSelector, err)
-			continue
-		}
-
-		fmt.Println(text) //TODO: store text to db, emit event for indexer service (also TODO)
 	}
+
+	c.Close()
+}
+
+func saveMemory(msg *kafka.Message, scraper *scraper.CollyScraper, store *db.Store) {
+	var data ScrapTask
+	if err := json.Unmarshal(msg.Value, &data); err != nil {
+		fmt.Printf("json unserialization error: %s", err)
+		return
+	}
+
+	paragraphs, err := scraper.ScrapPage(data.Url, data.CssSelector)
+	if err != nil {
+		fmt.Printf("failed to scrap url: %s, css selector: %s, error: %s", data.Url, data.CssSelector, err)
+		return
+	}
+
+	text := strings.Join(paragraphs, "\n")
+	memory := types.NewMemory(types.MemoryTypeWebArticle, data.Url, text)
+	store.Memory.InsertMemory(context.Background(), memory)
 }
