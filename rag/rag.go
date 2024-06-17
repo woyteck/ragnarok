@@ -31,6 +31,7 @@ func New(llm *openai.Client, store *db.Store, pr *prompter.Prompter, vectorDB *v
 }
 
 func (r *Rag) Ask(ctx context.Context, conversationId uuid.UUID, userPrompt string) (*types.Conversation, error) {
+	//read conversation history
 	conversation, err := r.store.Conversation.GetConversationByUUID(ctx, conversationId)
 	if err != nil {
 		return nil, err
@@ -41,6 +42,19 @@ func (r *Rag) Ask(ctx context.Context, conversationId uuid.UUID, userPrompt stri
 		return nil, err
 	}
 	conversation.Messages = messages
+
+	//check if user's prompt is safe to send to llm
+	isFlagged, err := r.isUserInputFlagged(userPrompt)
+	if err != nil {
+		return nil, err
+	}
+
+	if isFlagged {
+		message := types.NewMessage(conversation.ID, "assistant", "Nie mogę na to odpowiedzieć, bo mnie zbanują. Weź pytaj mnie o coś normalnego.")
+		conversation.Messages = append(conversation.Messages, message)
+
+		return conversation, nil
+	}
 
 	//add basic conversation context
 	if len(conversation.Messages) == 0 {
@@ -60,7 +74,8 @@ func (r *Rag) Ask(ctx context.Context, conversationId uuid.UUID, userPrompt stri
 	if err != nil {
 		return nil, err
 	}
-	if additionalContext != "" {
+	if additionalContext != "" && strings.ToLower(additionalContext) != "nieistotne" {
+		fmt.Printf("system: %s\n", additionalContext)
 		err = r.addMessage(ctx, conversation, "system", additionalContext)
 		if err != nil {
 			return nil, err
@@ -68,6 +83,7 @@ func (r *Rag) Ask(ctx context.Context, conversationId uuid.UUID, userPrompt stri
 	}
 
 	//add user's prompt
+	fmt.Printf("user: %s\n", userPrompt)
 	err = r.addMessage(ctx, conversation, "user", userPrompt)
 	if err != nil {
 		return nil, err
@@ -88,6 +104,7 @@ func (r *Rag) Ask(ctx context.Context, conversationId uuid.UUID, userPrompt stri
 
 	answer := resp.Choices[0].Message.Content
 
+	fmt.Printf("assistant: %s\n", answer)
 	err = r.addMessage(ctx, conversation, "assistant", answer)
 	if err != nil {
 		return nil, err
@@ -96,20 +113,30 @@ func (r *Rag) Ask(ctx context.Context, conversationId uuid.UUID, userPrompt stri
 	return conversation, nil
 }
 
+func (r *Rag) isUserInputFlagged(userInput string) (bool, error) {
+	isFlagged, _, err := r.llm.GetModeration(userInput)
+	if err != nil {
+		return false, err
+	}
+
+	return isFlagged, nil
+}
+
 func (r *Rag) findMoreContext(ctx context.Context, text string) (string, error) {
 	vector, err := r.llm.GetEmbedding(text, "text-embedding-ada-002")
 	if err != nil {
 		return "", err
 	}
 
-	searchResults, err := r.vectorDB.Search("memory", vector, 5)
+	searchResults, err := r.vectorDB.Search("memory", vector, 3)
 	if err != nil {
 		return "", err
 	}
 
 	contexts := []string{}
 	for _, searchResult := range searchResults {
-		if searchResult.Score > 0.9 {
+		fmt.Printf("related memory fragment found, score: %f:\n", searchResult.Score)
+		if searchResult.Score > 0.75 {
 			fragment, err := r.store.MemoryFragment.GetMemoryFragmentByUUID(ctx, searchResult.ID)
 			if err != nil {
 				return "", err
@@ -138,9 +165,9 @@ func (r *Rag) buildRequest(conversation *types.Conversation) openai.CompletionRe
 }
 
 func (r *Rag) addMessage(ctx context.Context, conversation *types.Conversation, role string, text string) error {
-	contextMessage := types.NewMessage(conversation.ID, role, text)
-	conversation.Messages = append(conversation.Messages, contextMessage)
-	err := r.store.Message.InsertMessage(ctx, contextMessage)
+	message := types.NewMessage(conversation.ID, role, text)
+	conversation.Messages = append(conversation.Messages, message)
+	err := r.store.Message.InsertMessage(ctx, message)
 	if err != nil {
 		return err
 	}

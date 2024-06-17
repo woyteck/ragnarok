@@ -68,7 +68,7 @@ func (s *PostgresMessagesStore) GetMessageByUUID(ctx context.Context, id uuid.UU
 }
 
 func (s *PostgresMessagesStore) GetMessagesByConversationUUID(ctx context.Context, id uuid.UUID) ([]*types.Message, error) {
-	query := fmt.Sprintf("SELECT conversation_id, role, content, created_at FROM %s WHERE conversation_id = $1", s.table)
+	query := fmt.Sprintf("SELECT conversation_id, role, content, created_at FROM %s WHERE conversation_id = $1 ORDER BY created_at", s.table)
 	rows, err := s.db.Query(query, id)
 	if err != nil {
 		return nil, err

@@ -123,7 +123,6 @@ func indexMemoryFragment(msg *kafka.Message, store *db.Store, llm *openai.Client
 		if contentRefined != "nieistotne" && contentRefined != "" {
 			memoryFragment.ContentRefined = contentRefined
 		}
-
 		memoryFragment.IsRefined = true
 
 		err = store.MemoryFragment.UpdateMemoryFragment(context.Background(), memoryFragment)
@@ -132,7 +131,7 @@ func indexMemoryFragment(msg *kafka.Message, store *db.Store, llm *openai.Client
 		}
 	}
 
-	if !memoryFragment.IsEmbedded {
+	if !memoryFragment.IsEmbedded && memoryFragment.ContentRefined != "" {
 		err = embedMemoryFragment(memoryFragment, llm, qdrant)
 		if err != nil {
 			return err
