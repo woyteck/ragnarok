@@ -55,4 +55,5 @@ func main() {
 	store.Memory.Truncate(ctx)
 
 	qdrant.DeleteCollection("memory")
+	qdrant.CreateCollection("memory", 1536, "Cosine")
 }

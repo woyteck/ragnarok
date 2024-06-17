@@ -61,8 +61,12 @@ var Services = map[string]ServiceFactoryFn{
 		if !ok {
 			panic("store factory failed")
 		}
+		vectordb, ok := c.Get("vectordb").(*vectordb.QdrantClient)
+		if !ok {
+			panic("vectordb factory failed")
+		}
 
-		return rag.New(llm, store.Message, prompter)
+		return rag.New(llm, store, prompter, vectordb)
 	},
 	"vectordb": func(c *Container) any {
 		user := os.Getenv("QDRANT_BASEURL")

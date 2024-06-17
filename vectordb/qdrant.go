@@ -323,6 +323,8 @@ func (c *QdrantClient) Search(collectionName string, vector []float64, resultsCo
 		return nil, err
 	}
 
+	// fmt.Printf("%+v\n", response.Body)
+
 	defer response.Body.Close()
 
 	if response.StatusCode >= 400 {
