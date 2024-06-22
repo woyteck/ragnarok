@@ -75,7 +75,7 @@ func (r *Rag) Ask(ctx context.Context, conversationId uuid.UUID, userPrompt stri
 		return nil, err
 	}
 	if additionalContext != "" && strings.ToLower(additionalContext) != "nieistotne" {
-		fmt.Printf("system: %s\n", additionalContext)
+		// fmt.Printf("system: %s\n", additionalContext)
 		err = r.addMessage(ctx, conversation, "system", additionalContext)
 		if err != nil {
 			return nil, err
@@ -83,7 +83,7 @@ func (r *Rag) Ask(ctx context.Context, conversationId uuid.UUID, userPrompt stri
 	}
 
 	//add user's prompt
-	fmt.Printf("user: %s\n", userPrompt)
+	// fmt.Printf("user: %s\n", userPrompt)
 	err = r.addMessage(ctx, conversation, "user", userPrompt)
 	if err != nil {
 		return nil, err
@@ -104,7 +104,7 @@ func (r *Rag) Ask(ctx context.Context, conversationId uuid.UUID, userPrompt stri
 
 	answer := resp.Choices[0].Message.Content
 
-	fmt.Printf("assistant: %s\n", answer)
+	// fmt.Printf("assistant: %s\n", answer)
 	err = r.addMessage(ctx, conversation, "assistant", answer)
 	if err != nil {
 		return nil, err
@@ -135,7 +135,7 @@ func (r *Rag) findMoreContext(ctx context.Context, text string) (string, error) 
 
 	contexts := []string{}
 	for _, searchResult := range searchResults {
-		fmt.Printf("related memory fragment found, score: %f:\n", searchResult.Score)
+		// fmt.Printf("related memory fragment found, score: %f:\n", searchResult.Score)
 		if searchResult.Score > 0.75 {
 			fragment, err := r.store.MemoryFragment.GetMemoryFragmentByUUID(ctx, searchResult.ID)
 			if err != nil {

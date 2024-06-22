@@ -1,16 +1,20 @@
 package api
 
 import (
+	"context"
 	"database/sql"
+	"fmt"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/log"
 	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
 	"woyteck.pl/ragnarok/db"
 	"woyteck.pl/ragnarok/di"
 	"woyteck.pl/ragnarok/openai"
 	"woyteck.pl/ragnarok/rag"
-	"woyteck.pl/ragnarok/text_to_speech"
+	"woyteck.pl/ragnarok/tts"
 	"woyteck.pl/ragnarok/types"
 )
 
@@ -19,8 +23,15 @@ type ConversationResponse struct {
 }
 
 type TalkRequest struct {
-	Text   string       `json:"text"`
-	Coords types.Coords `json:"coords,omitempty"`
+	ConversationId uuid.UUID    `json:"conversationId,omitempty"`
+	Text           string       `json:"text"`
+	Coords         types.Coords `json:"coords,omitempty"`
+}
+
+type TalkResponse struct {
+	ConversationId uuid.UUID `json:"conversationId,omitempty"`
+	Text           string    `json:"text"`
+	Audio          string    `json:"audio"`
 }
 
 type ConversationHandler struct {
@@ -28,7 +39,7 @@ type ConversationHandler struct {
 	store *db.Store
 	llm   *openai.Client
 	rag   *rag.Rag
-	tts   *text_to_speech.ElevenLabsTTS
+	tts   *tts.ElevenLabsTTS
 }
 
 func NewConversationHandler(container *di.Container) *ConversationHandler {
@@ -48,7 +59,7 @@ func NewConversationHandler(container *di.Container) *ConversationHandler {
 	if !ok {
 		panic("get rag failed")
 	}
-	tts, ok := container.Get("tts").(*text_to_speech.ElevenLabsTTS)
+	tts, ok := container.Get("tts").(*tts.ElevenLabsTTS)
 	if !ok {
 		panic("get tts failed")
 	}
@@ -126,4 +137,35 @@ func (h *ConversationHandler) HandlePostConversation(c *fiber.Ctx) error {
 
 	c.Set("Content-Type", "audio/mpeg")
 	return c.Send(b)
+}
+
+func (h *ConversationHandler) HandleWsConversation(conn *websocket.Conn, req *TalkRequest) error {
+	conv, err := h.rag.Ask(context.Background(), req.ConversationId, req.Text)
+	if err != nil {
+		return err
+	}
+
+	lastMessage := conv.Messages[len(conv.Messages)-1]
+
+	handler := func(msg tts.TextToSpeechStreamingResponse) {
+		if len(msg.Audio) == 0 {
+			return
+		}
+
+		chunk := strings.Join(msg.Alignment.Chars, "")
+		fmt.Println(chunk)
+		conn.WriteJSON(TalkResponse{
+			ConversationId: req.ConversationId,
+			Text:           chunk,
+			Audio:          msg.Audio,
+		})
+	}
+	wsClient, err := h.tts.NewWsClient(handler)
+	if err != nil {
+		return err
+	}
+
+	wsClient.Send(lastMessage.Content, true)
+
+	return nil
 }

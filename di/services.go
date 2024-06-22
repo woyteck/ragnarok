@@ -10,7 +10,7 @@ import (
 	"woyteck.pl/ragnarok/prompter"
 	"woyteck.pl/ragnarok/rag"
 	"woyteck.pl/ragnarok/scraper"
-	"woyteck.pl/ragnarok/text_to_speech"
+	"woyteck.pl/ragnarok/tts"
 	"woyteck.pl/ragnarok/vectordb"
 )
 
@@ -76,9 +76,9 @@ var Services = map[string]ServiceFactoryFn{
 	},
 	"tts": func(c *Container) any {
 		apiKey := os.Getenv("ELEVENLABS_API_KEY")
-		config := text_to_speech.NewElevenLabsConfig().WithApiKey(apiKey)
+		config := tts.NewElevenLabsConfig().WithApiKey(apiKey)
 
-		return text_to_speech.NewElevenLabsTTS(config)
+		return tts.NewElevenLabsTTS(config)
 	},
 	"scraper": func(c *Container) any {
 		return scraper.NewCollyScraper(colly.NewCollector())

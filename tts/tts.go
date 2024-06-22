@@ -1,4 +1,4 @@
-package text_to_speech
+package tts
 
 import (
 	"bytes"
@@ -8,9 +8,13 @@ import (
 	"net/http"
 )
 
-const VoiceChris = "iP95p4xoKVk53GoZ742B"
-const VoiceAntoni = "ErXwobaYiN019PkySvjV"
-const ModelMultilingualV2 = "eleven_multilingual_v2"
+const (
+	VoiceChris          = "iP95p4xoKVk53GoZ742B"
+	VoiceAntoni         = "ErXwobaYiN019PkySvjV"
+	ModelMultilingualV2 = "eleven_multilingual_v2"
+	baseUrl             = "https://api.elevenlabs.io/v1"
+	baseUrlWs           = "wss://api.elevenlabs.io/v1/text-to-speech/%s/stream-input?model_id=%s"
+)
 
 type TTS interface {
 	TextToSpeech(text string) ([]byte, error)
@@ -35,6 +39,32 @@ type TextToSpeechRequest struct {
 	PronunciationDictionaryLocators []PronunciationDictionaryLocator `json:"pronunciation_dictionary_locators"`
 }
 
+type GenerationConfig struct {
+	ChunkLengthSchedule []int `json:"chunk_length_schedule"`
+}
+
+type TextToSpeechStreamingRequest struct {
+	Text             string           `json:"text"`
+	VoiceSettings    VoiceSettings    `json:"voice_settings"`
+	GenerationConfig GenerationConfig `json:"generation_config"`
+	Flush            bool             `json:"flush"`
+	XiApiKey         string           `json:"xi_api_key"`
+	// Authorization    string           `json:"authorization"`
+}
+
+type Alignment struct {
+	CharStartTimesMs []int    `json:"char_start_times_ms"`
+	CharsDurationsMs []int    `json:"chars_durations_ms"`
+	Chars            []string `json:"chars"`
+}
+
+type TextToSpeechStreamingResponse struct {
+	Audio               string    `json:"audio"`
+	IsFinal             bool      `json:"isFinal"`
+	NormalizedAlignment Alignment `json:"normalizedAlignment"`
+	Alignment           Alignment `json:"alignment"`
+}
+
 type ElevenLabsConfig struct {
 	baseUrl       string
 	apiKey        string
@@ -45,7 +75,7 @@ type ElevenLabsConfig struct {
 
 func NewElevenLabsConfig() ElevenLabsConfig {
 	return ElevenLabsConfig{
-		baseUrl: "https://api.elevenlabs.io/v1",
+		baseUrl: baseUrl,
 		model:   ModelMultilingualV2,
 		voice:   VoiceChris,
 		voiceSettings: &VoiceSettings{
@@ -137,4 +167,8 @@ func (tts *ElevenLabsTTS) TextToSpeech(text string) ([]byte, error) {
 	}
 
 	return b, nil
+}
+
+func (tts *ElevenLabsTTS) NewWsClient(handler MessageHandlerFunc) (*WsClient, error) {
+	return NewWsClient(tts.config.apiKey, VoiceChris, ModelMultilingualV2, handler)
 }
