@@ -56,7 +56,11 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 		var talkReq api.TalkRequest
 		err := conn.ReadJSON(&talkReq)
 		if err != nil {
-			log.Println("read err:", err)
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+				log.Printf("UnexpectedCloseError: %v\n", err)
+			} else {
+				log.Println("read err:", err)
+			}
 			break
 		}
 		if err == io.EOF {
@@ -66,7 +70,7 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("%+v\n", talkReq)
 		err = s.handler(conn, &talkReq)
 		if err != nil {
-			log.Println("read err:", err)
+			log.Println("handler err:", err)
 			break
 		}
 	}
