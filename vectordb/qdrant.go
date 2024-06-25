@@ -12,7 +12,6 @@ import (
 
 type QdrantClient struct {
 	baseUrl string
-	apiKey  string
 }
 
 type QdrantPoint struct {
@@ -98,10 +97,9 @@ type CollectionExistsResponse struct {
 	Result CollectionExistsResult `json:"result"`
 }
 
-func NewQdrantClient(baseUrl string, apiKey string) *QdrantClient {
+func NewQdrantClient(baseUrl string) *QdrantClient {
 	return &QdrantClient{
 		baseUrl: baseUrl,
-		apiKey:  apiKey,
 	}
 }
 
@@ -323,8 +321,6 @@ func (c *QdrantClient) Search(collectionName string, vector []float64, resultsCo
 		return nil, err
 	}
 
-	// fmt.Printf("%+v\n", response.Body)
-
 	defer response.Body.Close()
 
 	if response.StatusCode >= 400 {
@@ -351,6 +347,5 @@ func (c *QdrantClient) Search(collectionName string, vector []float64, resultsCo
 }
 
 func (c *QdrantClient) addHeaders(req *http.Request) {
-	// req.Header.Add("api-key", c.apiKey)
 	req.Header.Add("Content-Type", "application/json")
 }

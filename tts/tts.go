@@ -49,7 +49,6 @@ type TextToSpeechStreamingRequest struct {
 	GenerationConfig GenerationConfig `json:"generation_config"`
 	Flush            bool             `json:"flush"`
 	XiApiKey         string           `json:"xi_api_key"`
-	// Authorization    string           `json:"authorization"`
 }
 
 type Alignment struct {

@@ -66,22 +66,12 @@ type CompletionRequestBase struct {
 
 type CompletionRequest struct {
 	CompletionRequestBase
-	// Model    string    `json:"model"`
 	Messages []*Message `json:"messages"`
-	// N        int       `json:"n,omitempty"`
-	// Stream   bool      `json:"stream,omitempty"`
-	// User     string    `json:"user,omitempty"`
-	// Tools    []Tool    `json:"tools"`
 }
 
 type ImageCompletionRequest struct {
 	CompletionRequestBase
-	// Model    string         `json:"model"`
 	Messages []ImageMessage `json:"messages"`
-	// N        int            `json:"n,omitempty"`
-	// Stream   bool           `json:"stream,omitempty"`
-	// User     string         `json:"user,omitempty"`
-	// Tools    []Tool         `json:"tools"`
 }
 
 type CompletionResponse struct {

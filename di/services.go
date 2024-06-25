@@ -70,9 +70,8 @@ var Services = map[string]ServiceFactoryFn{
 	},
 	"vectordb": func(c *Container) any {
 		user := os.Getenv("QDRANT_BASEURL")
-		apiKey := os.Getenv("QDRANT_API_KEY")
 
-		return vectordb.NewQdrantClient(user, apiKey)
+		return vectordb.NewQdrantClient(user)
 	},
 	"tts": func(c *Container) any {
 		apiKey := os.Getenv("ELEVENLABS_API_KEY")
