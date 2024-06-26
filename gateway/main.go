@@ -50,6 +50,8 @@ func startApi() {
 	v1.Post("/conversation/:uuid", conversationHandler.HandlePostConversation)
 
 	v1.Get("/memories", memoryHandler.HandleGetMemories)
+	v1.Get("/memories/:uuid", memoryHandler.HandleGetMemory)
+	v1.Post("/memories", memoryHandler.HandlePostMemory)
 
 	log.Fatal(app.Listen(listernAddr))
 }

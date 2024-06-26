@@ -7,7 +7,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	kaf "github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	"woyteck.pl/ragnarok/db"
@@ -43,7 +43,7 @@ func main() {
 		panic("get indexer failed")
 	}
 
-	c, err := kafka.NewConsumer(&kafka.ConfigMap{
+	c, err := kaf.NewConsumer(&kaf.ConfigMap{
 		"bootstrap.servers": "localhost",
 		"group.id":          "myGroup",
 		"auto.offset.reset": "earliest",
@@ -61,7 +61,7 @@ func main() {
 		if err == nil {
 			fmt.Printf("Message on %s: %s\n", msg.TopicPartition, string(msg.Value))
 			saveMemory(msg, scraper, store, indexer)
-		} else if !err.(kafka.Error).IsTimeout() {
+		} else if !err.(kaf.Error).IsTimeout() {
 			fmt.Printf("Consumer error: %v (%v)\n", err, msg)
 			continue
 		}
@@ -70,18 +70,18 @@ func main() {
 	c.Close()
 }
 
-func saveMemory(msg *kafka.Message, scraper *scraper.CollyScraper, store *db.Store, indexer *indexer.Indexer) {
+func saveMemory(msg *kaf.Message, scraper *scraper.CollyScraper, store *db.Store, indexer *indexer.Indexer) {
 	var data types.ScrapTaskEvent
 	if err := json.Unmarshal(msg.Value, &data); err != nil {
 		fmt.Printf("json unserialization error: %s", err)
 		return
 	}
 
-	exists, _, err := store.Memory.GetMemoryBySource(context.Background(), data.Url)
+	exists, memory, err := store.Memory.GetMemoryBySource(context.Background(), data.Url)
 	if err != nil {
 		panic(err)
 	}
-	if exists {
+	if exists && memory.Content != "" {
 		fmt.Println("already scrapped", data.Url)
 		return
 	}
@@ -92,7 +92,13 @@ func saveMemory(msg *kafka.Message, scraper *scraper.CollyScraper, store *db.Sto
 		return
 	}
 
-	insertedMemoryFragmentIds, err := indexer.Index(html, title, data.Url)
+	if exists {
+		memory.Content = html
+	} else {
+		memory = types.NewMemory(types.MemoryTypeWebArticle, data.Url, html)
+	}
+
+	insertedMemoryFragmentIds, err := indexer.Index(memory, !exists, title, data.Url)
 	if err != nil {
 		fmt.Printf("indexer error: %s", err)
 		return
@@ -104,7 +110,7 @@ func saveMemory(msg *kafka.Message, scraper *scraper.CollyScraper, store *db.Sto
 }
 
 func emitIndexTask(memoryFragmentId uuid.UUID) {
-	p, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": "localhost"})
+	p, err := kaf.NewProducer(&kaf.ConfigMap{"bootstrap.servers": "localhost"})
 	if err != nil {
 		panic(err)
 	}
@@ -114,7 +120,7 @@ func emitIndexTask(memoryFragmentId uuid.UUID) {
 	go func() {
 		for e := range p.Events() {
 			switch ev := e.(type) {
-			case *kafka.Message:
+			case *kaf.Message:
 				if ev.TopicPartition.Error != nil {
 					fmt.Printf("Delivery failed: %v\n", ev.TopicPartition)
 				} else {
@@ -134,10 +140,10 @@ func emitIndexTask(memoryFragmentId uuid.UUID) {
 	}
 
 	topic := kafkaTopicIndex
-	err = p.Produce(&kafka.Message{
-		TopicPartition: kafka.TopicPartition{
+	err = p.Produce(&kaf.Message{
+		TopicPartition: kaf.TopicPartition{
 			Topic:     &topic,
-			Partition: kafka.PartitionAny,
+			Partition: kaf.PartitionAny,
 		},
 		Value: b,
 	}, nil)

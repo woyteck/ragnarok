@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"woyteck.pl/ragnarok/types"
@@ -13,9 +14,10 @@ import (
 type MemoriesStore interface {
 	Truncater
 	GetMemoryByUUID(context.Context, uuid.UUID) (*types.Memory, error)
-	GetMemoryBySource(context.Context, string) (bool, *types.Memory, error)
+	GetMemoryBySource(context.Context, string) (isFound bool, memory *types.Memory, err error)
 	GetMemories(ctx context.Context, allFields bool, limit int, offset int) ([]*types.Memory, error)
 	InsertMemory(context.Context, *types.Memory) error
+	UpdateMemory(context.Context, *types.Memory) error
 }
 
 type PostgresMemoriesStore struct {
@@ -80,7 +82,7 @@ func (s *PostgresMemoriesStore) GetMemoryByUUID(ctx context.Context, id uuid.UUI
 	}
 }
 
-func (s *PostgresMemoriesStore) GetMemoryBySource(ctx context.Context, source string) (bool, *types.Memory, error) {
+func (s *PostgresMemoriesStore) GetMemoryBySource(ctx context.Context, source string) (isFound bool, memory *types.Memory, err error) {
 	var id uuid.UUID
 	var createdAt sql.NullString
 	var updatedAt sql.NullString
@@ -217,4 +219,17 @@ func (s *PostgresMemoriesStore) InsertMemory(ctx context.Context, m *types.Memor
 	}
 
 	return nil
+}
+
+func (s *PostgresMemoriesStore) UpdateMemory(ctx context.Context, m *types.Memory) error {
+	if m.ID == uuid.Nil {
+		return fmt.Errorf("can't update memory with no ID")
+	}
+
+	now := time.Now()
+	m.UpdatedAt = &now
+	query := fmt.Sprintf("UPDATE %s SET content=$1, memory_type=$2, source=$3, updated_at=$4 WHERE uuid=$5", s.table)
+	_, err := s.db.Exec(query, m.Content, m.MemoryType, m.Source, m.UpdatedAt, m.ID)
+
+	return err
 }

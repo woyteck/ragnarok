@@ -31,18 +31,24 @@ func NewIndexer(store *db.Store, llm *openai.Client, prompter *prompter.Prompter
 	}
 }
 
-func (i *Indexer) Index(document string, title string, url string) ([]uuid.UUID, error) {
+func (i *Indexer) Index(memory *types.Memory, isNewMemory bool, title string, url string) ([]uuid.UUID, error) {
 	ctx := context.Background()
 
-	doc, err := html.Parse(strings.NewReader(document))
+	doc, err := html.Parse(strings.NewReader(memory.Content))
 	if err != nil {
 		return nil, err
 	}
 
 	paragraphs := extractParagraphs(doc)
 
-	memory := types.NewMemory(types.MemoryTypeWebArticle, url, document)
-	i.store.Memory.InsertMemory(ctx, memory)
+	if isNewMemory {
+		err = i.store.Memory.InsertMemory(ctx, memory)
+	} else {
+		err = i.store.Memory.UpdateMemory(ctx, memory)
+	}
+	if err != nil {
+		return nil, err
+	}
 
 	insertedFragmentIds := []uuid.UUID{}
 	for _, p := range paragraphs {

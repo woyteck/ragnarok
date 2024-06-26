@@ -7,6 +7,7 @@ import (
 	"github.com/gocolly/colly"
 	"woyteck.pl/ragnarok/db"
 	"woyteck.pl/ragnarok/indexer"
+	"woyteck.pl/ragnarok/kafka"
 	"woyteck.pl/ragnarok/openai"
 	"woyteck.pl/ragnarok/prompter"
 	"woyteck.pl/ragnarok/rag"
@@ -102,5 +103,8 @@ var Services = map[string]ServiceFactoryFn{
 		}
 
 		return indexer.NewIndexer(store, llm, prompter, qdrant)
+	},
+	"kafka": func(c *Container) any {
+		return kafka.NewKafka("localhost")
 	},
 }

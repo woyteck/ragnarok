@@ -54,6 +54,13 @@ func ErrResourceNotFound(res string) Error {
 	}
 }
 
+func ErrResourceAlreadyExists(res string) Error {
+	return Error{
+		Code: http.StatusConflict,
+		Err:  fmt.Sprintf("%s already exists", res),
+	}
+}
+
 func ErrInternalError(res string) Error {
 	return Error{
 		Code: http.StatusInternalServerError,
