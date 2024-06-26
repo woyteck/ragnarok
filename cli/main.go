@@ -9,9 +9,6 @@ import (
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/joho/godotenv"
-	"woyteck.pl/ragnarok/di"
-	"woyteck.pl/ragnarok/indexer"
-	"woyteck.pl/ragnarok/scraper"
 	"woyteck.pl/ragnarok/types"
 )
 
@@ -25,52 +22,19 @@ func main() {
 
 	url := flag.String("url", "", "url to scrap")
 	cssSelector := flag.String("selector", ".article-content p", "css selector to extract paragraphs of text")
-	mode := flag.String("mode", "", "queue | experiment")
 	flag.Parse()
 
-	if *mode == "experiment" {
-		experiment()
-	} else {
-		if *url == "" {
-			fmt.Fprintf(os.Stderr, "url is required\n")
-			return
+	if *url == "" {
+		fmt.Fprintf(os.Stderr, "url is required\n")
+		return
 
-		}
-		if *cssSelector == "" {
-			fmt.Fprintf(os.Stderr, "cssSelector is required\n")
-			return
-		}
-
-		emitScrapTask(*url, *cssSelector)
 	}
-}
-
-func experiment() {
-	container := di.NewContainer(di.Services)
-
-	url := "https://italia-by-natalia.pl/etna-jak-zwiedzac-wulkan-informacje-praktyczne/"
-	selector := ".article-content"
-
-	scraper, ok := container.Get("scraper").(*scraper.CollyScraper)
-	if !ok {
-		panic("get scraper failed")
-	}
-
-	title, html, err := scraper.GetArticle(url, selector)
-	if err != nil {
-		fmt.Printf("failed to scrap url: %s, css selector: %s, error: %s", url, selector, err)
+	if *cssSelector == "" {
+		fmt.Fprintf(os.Stderr, "cssSelector is required\n")
 		return
 	}
 
-	indexer, ok := container.Get("indexer").(*indexer.Indexer)
-	if !ok {
-		panic("get indexer failed")
-	}
-
-	err = indexer.Index(html, title)
-	if err != nil {
-		panic(err)
-	}
+	emitScrapTask(*url, *cssSelector)
 }
 
 func emitScrapTask(url string, cssSelector string) {

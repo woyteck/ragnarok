@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
@@ -13,6 +12,7 @@ import (
 	"github.com/joho/godotenv"
 	"woyteck.pl/ragnarok/db"
 	"woyteck.pl/ragnarok/di"
+	"woyteck.pl/ragnarok/indexer"
 	"woyteck.pl/ragnarok/scraper"
 	"woyteck.pl/ragnarok/types"
 )
@@ -38,6 +38,11 @@ func main() {
 		panic("get store failed")
 	}
 
+	indexer, ok := container.Get("indexer").(*indexer.Indexer)
+	if !ok {
+		panic("get indexer failed")
+	}
+
 	c, err := kafka.NewConsumer(&kafka.ConfigMap{
 		"bootstrap.servers": "localhost",
 		"group.id":          "myGroup",
@@ -55,12 +60,8 @@ func main() {
 		msg, err := c.ReadMessage(time.Second)
 		if err == nil {
 			fmt.Printf("Message on %s: %s\n", msg.TopicPartition, string(msg.Value))
-
-			saveMemory(msg, scraper, store)
+			saveMemory(msg, scraper, store, indexer)
 		} else if !err.(kafka.Error).IsTimeout() {
-			// The client will automatically try to recover from all errors.
-			// Timeout is not considered an error because it is raised by
-			// ReadMessage in absence of messages.
 			fmt.Printf("Consumer error: %v (%v)\n", err, msg)
 			continue
 		}
@@ -69,7 +70,7 @@ func main() {
 	c.Close()
 }
 
-func saveMemory(msg *kafka.Message, scraper *scraper.CollyScraper, store *db.Store) {
+func saveMemory(msg *kafka.Message, scraper *scraper.CollyScraper, store *db.Store, indexer *indexer.Indexer) {
 	var data types.ScrapTaskEvent
 	if err := json.Unmarshal(msg.Value, &data); err != nil {
 		fmt.Printf("json unserialization error: %s", err)
@@ -85,20 +86,20 @@ func saveMemory(msg *kafka.Message, scraper *scraper.CollyScraper, store *db.Sto
 		return
 	}
 
-	paragraphs, err := scraper.ScrapPage(data.Url, data.CssSelector)
+	title, html, err := scraper.GetArticle(data.Url, data.CssSelector)
 	if err != nil {
 		fmt.Printf("failed to scrap url: %s, css selector: %s, error: %s", data.Url, data.CssSelector, err)
 		return
 	}
 
-	text := strings.Join(paragraphs, "\n")
-	memory := types.NewMemory(types.MemoryTypeWebArticle, data.Url, text)
-	store.Memory.InsertMemory(context.Background(), memory)
+	insertedMemoryFragmentIds, err := indexer.Index(html, title, data.Url)
+	if err != nil {
+		fmt.Printf("indexer error: %s", err)
+		return
+	}
 
-	for _, paragraph := range paragraphs {
-		fragment := types.NewMemoryFragment(paragraph, "", false, false, memory.ID)
-		store.MemoryFragment.InsertMemoryFragment(context.Background(), fragment)
-		emitIndexTask(fragment.ID)
+	for _, id := range insertedMemoryFragmentIds {
+		emitIndexTask(id)
 	}
 }
 
