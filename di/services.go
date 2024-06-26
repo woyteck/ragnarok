@@ -6,6 +6,7 @@ import (
 
 	"github.com/gocolly/colly"
 	"woyteck.pl/ragnarok/db"
+	"woyteck.pl/ragnarok/indexer"
 	"woyteck.pl/ragnarok/openai"
 	"woyteck.pl/ragnarok/prompter"
 	"woyteck.pl/ragnarok/rag"
@@ -81,5 +82,25 @@ var Services = map[string]ServiceFactoryFn{
 	},
 	"scraper": func(c *Container) any {
 		return scraper.NewCollyScraper(colly.NewCollector())
+	},
+	"indexer": func(c *Container) any {
+		store, ok := c.Get("store").(*db.Store)
+		if !ok {
+			panic("store factory failed")
+		}
+		llm, ok := c.Get("llm").(*openai.Client)
+		if !ok {
+			panic("openai factory failed")
+		}
+		prompter, ok := c.Get("prompter").(*prompter.Prompter)
+		if !ok {
+			panic("store factory failed")
+		}
+		qdrant, ok := c.Get("vectordb").(*vectordb.QdrantClient)
+		if !ok {
+			panic("vectordb factory failed")
+		}
+
+		return indexer.NewIndexer(store, llm, prompter, qdrant)
 	},
 }

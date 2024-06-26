@@ -1,3 +1,4 @@
 .env
 bin
 qdrant_data
+temp
