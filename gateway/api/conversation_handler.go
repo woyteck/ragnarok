@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"strings"
 
@@ -35,7 +34,6 @@ type TalkResponse struct {
 }
 
 type ConversationHandler struct {
-	db    *sql.DB
 	store *db.Store
 	llm   *openai.Client
 	rag   *rag.Rag
@@ -43,10 +41,6 @@ type ConversationHandler struct {
 }
 
 func NewConversationHandler(container *di.Container) *ConversationHandler {
-	dbConn, ok := container.Get("db").(*sql.DB)
-	if !ok {
-		panic("get db failed")
-	}
 	store, ok := container.Get("store").(*db.Store)
 	if !ok {
 		panic("get store failed")
@@ -65,7 +59,6 @@ func NewConversationHandler(container *di.Container) *ConversationHandler {
 	}
 
 	return &ConversationHandler{
-		db:    dbConn,
 		store: store,
 		llm:   llm,
 		rag:   rag,

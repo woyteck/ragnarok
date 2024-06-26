@@ -40,6 +40,7 @@ func startApi() {
 		listernAddr         = os.Getenv("API_HTTP_LISTEN_ADDRESS")
 		container           = di.NewContainer(di.Services)
 		conversationHandler = api.NewConversationHandler(container)
+		memoryHandler       = api.NewMemoryHandler(container)
 		app                 = fiber.New(config)
 		apiRoot             = app.Group("/api")
 		v1                  = apiRoot.Group("v1")
@@ -47,6 +48,8 @@ func startApi() {
 
 	v1.Get("/conversation/:uuid?", conversationHandler.HandleGetConversation)
 	v1.Post("/conversation/:uuid", conversationHandler.HandlePostConversation)
+
+	v1.Get("/memories", memoryHandler.HandleGetMemories)
 
 	log.Fatal(app.Listen(listernAddr))
 }

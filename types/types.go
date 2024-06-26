@@ -46,11 +46,11 @@ type Coords struct {
 type Memory struct {
 	ID         uuid.UUID  `json:"id"`
 	CreatedAt  *time.Time `json:"createdAt"`
-	UpdatedAt  *time.Time `json:"updatedAt"`
-	DeletedAt  *time.Time `json:"deletedAt"`
+	UpdatedAt  *time.Time `json:"updatedAt,omitempty"`
+	DeletedAt  *time.Time `json:"deletedAt,omitempty"`
 	MemoryType string     `json:"memoryType"`
-	Source     string     `json:"source"`
-	Content    string     `json:"content"`
+	Source     string     `json:"source,omitempty"`
+	Content    string     `json:"content,omitempty"`
 }
 
 func NewMemory(memoryType string, source string, content string) *Memory {

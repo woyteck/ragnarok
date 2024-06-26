@@ -14,6 +14,7 @@ type MemoriesStore interface {
 	Truncater
 	GetMemoryByUUID(context.Context, uuid.UUID) (*types.Memory, error)
 	GetMemoryBySource(context.Context, string) (bool, *types.Memory, error)
+	GetMemories(ctx context.Context, allFields bool, limit int, offset int) ([]*types.Memory, error)
 	InsertMemory(context.Context, *types.Memory) error
 }
 
@@ -120,6 +121,68 @@ func (s *PostgresMemoriesStore) GetMemoryBySource(ctx context.Context, source st
 	default:
 		return false, nil, err
 	}
+}
+
+func (s *PostgresMemoriesStore) GetMemories(ctx context.Context, allFields bool, limit int, offset int) ([]*types.Memory, error) {
+	//TODO: add pagination
+
+	fields := []string{"uuid", "created_at", "updated_at", "deleted_at", "memory_type", "source"}
+	if allFields {
+		fields = append(fields, "content")
+	}
+	query := fmt.Sprintf("SELECT %s FROM %s ORDER BY created_at", strings.Join(fields, ","), s.table)
+	rows, err := s.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	memories := []*types.Memory{}
+
+	for rows.Next() {
+		var memoryId uuid.UUID
+		var createdAt sql.NullString
+		var updatedAt sql.NullString
+		var deletedAt sql.NullString
+		var memoryType string
+		var source string
+		var content string
+
+		var err error
+		if allFields {
+			err = rows.Scan(&memoryId, &createdAt, &updatedAt, &deletedAt, &memoryType, &source, &content)
+		} else {
+			err = rows.Scan(&memoryId, &createdAt, &updatedAt, &deletedAt, &memoryType, &source)
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		memory := &types.Memory{
+			ID:         memoryId,
+			MemoryType: memoryType,
+			Source:     source,
+			Content:    content,
+		}
+
+		createdAtTime, err := parseTimestamp(createdAt)
+		if err == nil {
+			memory.CreatedAt = createdAtTime
+		}
+		updatedAtTime, err := parseTimestamp(updatedAt)
+		if err == nil {
+			memory.UpdatedAt = updatedAtTime
+		}
+		deletedAtTime, err := parseTimestamp(deletedAt)
+		if err == nil {
+			memory.DeletedAt = deletedAtTime
+		}
+
+		memories = append(memories, memory)
+	}
+
+	return memories, nil
 }
 
 func (s *PostgresMemoriesStore) InsertMemory(ctx context.Context, m *types.Memory) error {
