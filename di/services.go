@@ -105,6 +105,6 @@ var Services = map[string]ServiceFactoryFn{
 		return indexer.NewIndexer(store, llm, prompter, qdrant)
 	},
 	"kafka": func(c *Container) any {
-		return kafka.NewKafka("localhost")
+		return kafka.NewKafka("localhost", "myGroup")
 	},
 }

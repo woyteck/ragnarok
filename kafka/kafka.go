@@ -1,17 +1,24 @@
 package kafka
 
 import (
+	"fmt"
+	"time"
+
 	kaf "github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/gofiber/fiber/v2/log"
 )
 
 type Kafka struct {
 	Servers string
+	GroupId string
 }
 
-func NewKafka(servers string) *Kafka {
+type ConsumeFn func(msg *kaf.Message)
+
+func NewKafka(servers string, groupId string) *Kafka {
 	return &Kafka{
 		Servers: servers,
+		GroupId: groupId,
 	}
 }
 
@@ -57,6 +64,36 @@ func (k *Kafka) Produce(topic string, message []byte) error {
 	}
 
 	producer.Flush(15 * 1000)
+
+	return nil
+}
+
+func (k *Kafka) Consume(topic string, fn ConsumeFn) error {
+	c, err := kaf.NewConsumer(&kaf.ConfigMap{
+		"bootstrap.servers": k.Servers,
+		"group.id":          k.GroupId,
+		"auto.offset.reset": "earliest",
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	c.SubscribeTopics([]string{topic}, nil)
+
+	run := true
+
+	for run {
+		msg, err := c.ReadMessage(time.Second)
+		if err == nil {
+			fmt.Printf("Message on %s: %s\n", msg.TopicPartition, string(msg.Value))
+			fn(msg)
+		} else if !err.(kaf.Error).IsTimeout() {
+			fmt.Printf("Consumer error: %v (%v)\n", err, msg)
+			continue
+		}
+	}
+
+	c.Close()
 
 	return nil
 }
