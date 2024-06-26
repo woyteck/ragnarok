@@ -10,6 +10,8 @@ import (
 	"github.com/joho/godotenv"
 	"woyteck.pl/ragnarok/di"
 	"woyteck.pl/ragnarok/gateway/api"
+
+	_ "github.com/lib/pq"
 )
 
 func main() {
