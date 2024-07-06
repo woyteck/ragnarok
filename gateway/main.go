@@ -30,7 +30,7 @@ func main() {
 	server := NewServer(listernAddr, conversationHandler.HandleWsConversation)
 
 	http.HandleFunc("/ws", server.handleWS)
-	http.ListenAndServe(listernAddr, nil)
+	log.Fatal(http.ListenAndServe(listernAddr, nil))
 }
 
 func startApi() {
