@@ -33,8 +33,6 @@ func main() {
 	log.Fatal(http.ListenAndServe(listernAddr, nil))
 }
 
-type HandlerFn func(c *fiber.Ctx) error
-
 func corsMiddleware(c *fiber.Ctx) error {
 	c.Response().Header.Add("Access-Control-Allow-Origin", "*")
 	return c.Next()
