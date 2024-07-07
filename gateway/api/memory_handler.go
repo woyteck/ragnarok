@@ -57,8 +57,6 @@ func (h *MemoryHandler) HandleGetMemories(c *fiber.Ctx) error {
 		Memories: memories,
 	}
 
-	c.Response().Header.Add("Access-Control-Allow-Origin", "*") //FIXME: create CORS middleware and move this there
-
 	return c.JSON(response)
 }
 
@@ -80,8 +78,6 @@ func (h *MemoryHandler) HandleGetMemory(c *fiber.Ctx) error {
 		return ErrInternalError("something went wrong")
 	}
 	memory.Fragments = fragments
-
-	c.Response().Header.Add("Access-Control-Allow-Origin", "*") //FIXME: create CORS middleware and move this there
 
 	return c.JSON(memory)
 }
@@ -130,8 +126,6 @@ func (h *MemoryHandler) HandlePostMemory(c *fiber.Ctx) error {
 		return ErrInternalError("something went wrong")
 	}
 	h.kafka.Produce("scrap_jobs", message)
-
-	c.Response().Header.Add("Access-Control-Allow-Origin", "*") //FIXME: create CORS middleware and move this there
 
 	return c.Status(http.StatusCreated).JSON(memory)
 }

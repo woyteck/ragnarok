@@ -33,6 +33,13 @@ func main() {
 	log.Fatal(http.ListenAndServe(listernAddr, nil))
 }
 
+type HandlerFn func(c *fiber.Ctx) error
+
+func corsMiddleware(c *fiber.Ctx) error {
+	c.Response().Header.Add("Access-Control-Allow-Origin", "*")
+	return c.Next()
+}
+
 func startApi() {
 	var config = fiber.Config{
 		ErrorHandler: api.ErrorHandler,
@@ -48,12 +55,12 @@ func startApi() {
 		v1                  = apiRoot.Group("v1")
 	)
 
-	v1.Get("/conversation/:uuid?", conversationHandler.HandleGetConversation)
-	v1.Post("/conversation/:uuid", conversationHandler.HandlePostConversation)
+	v1.Get("/conversation/:uuid?", corsMiddleware, conversationHandler.HandleGetConversation)
+	v1.Post("/conversation/:uuid", corsMiddleware, conversationHandler.HandlePostConversation)
 
-	v1.Get("/memories", memoryHandler.HandleGetMemories)
-	v1.Get("/memories/:uuid", memoryHandler.HandleGetMemory)
-	v1.Post("/memories", memoryHandler.HandlePostMemory)
+	v1.Get("/memories", corsMiddleware, memoryHandler.HandleGetMemories)
+	v1.Get("/memories/:uuid", corsMiddleware, memoryHandler.HandleGetMemory)
+	v1.Post("/memories", corsMiddleware, memoryHandler.HandlePostMemory)
 
 	log.Fatal(app.Listen(listernAddr))
 }
